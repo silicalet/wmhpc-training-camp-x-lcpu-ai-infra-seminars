@@ -44,6 +44,7 @@ assignment*/cuda/bin/
 *.sass
 
 # Misc
+.direnv/
 .DS_Store
 
 # User personal files

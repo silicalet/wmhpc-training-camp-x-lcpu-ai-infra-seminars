@@ -16,6 +16,20 @@
 
 每个 assignment 目录自带 README、handout PDF 与基础代码。
 
+### Nix devShell
+
+仓库提供基于 flake-parts 的开发环境，包含 CUDA Toolkit、Python、uv 和常用编译工具：
+
+```bash
+nix develop
+cd assignment01
+uv sync --extra tilelang
+```
+
+Python 依赖（包括 Torch、Triton 和可选的 TileLang）由各 assignment 的
+`pyproject.toml` 和 uv 管理，不会打包进 Nix devShell。首次进入环境和首次
+`uv sync` 都需要联网；运行 CUDA 程序仍需要宿主机安装兼容的 NVIDIA 驱动。
+
 ## 关于 AI 使用
 
 policy 见 [CLAUDE.md](CLAUDE.md)（[AGENTS.md](AGENTS.md) 内容相同，供其他工具读取）。AI 可以帮你理解，但不能替你实现。

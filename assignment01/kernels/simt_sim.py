@@ -18,6 +18,43 @@ contract: 实现 run(program) -> (regs, cycles)
 通过 pytest tests/test_simt_sim.py 即为完成。
 """
 
+lane: list[int] = [0] * 32
+
+
+def xcpc(program, ln):
+    assert type(program) == list
+    cycle = 0
+
+    for op in program:
+        assert type(op) == tuple
+        if op[0] == "add":
+            cycle += 1
+            k: int = op[1]
+            for i in ln:
+                lane[i] += k
+        elif op[0] == "mul":
+            cycle += 1
+            k: int = op[1]
+            for i in ln:
+                lane[i] *= k
+        else:
+            t, then_prog, else_prog = op[1:]
+            a: list[int] = []
+            b: list[int] = []
+            for i in ln:
+                if lane[i] < t:
+                    a.append(i)
+                else:
+                    b.append(i)
+
+            if a:
+                cycle += xcpc(then_prog, a)[1]
+            if b:
+                cycle += xcpc(else_prog, b)[1]
+
+    return (lane, cycle)
+
 
 def run(program):
-    raise NotImplementedError("从这里开始写")
+    lane[:] = list(range(32))
+    return xcpc(program, list(range(32)))
