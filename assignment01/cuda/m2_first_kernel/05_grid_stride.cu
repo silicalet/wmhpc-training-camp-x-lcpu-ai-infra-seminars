@@ -11,6 +11,14 @@ __global__ void vectorAdd(const float *a, const float *b, float *c, int n) {
     if (idx < n) c[idx] = a[idx] + b[idx];
 }
 
+__global__ void xcpc(const float *a, const float *b, float *c, int n) {
+    int idx = threadIdx.x + blockIdx.x * blockDim.x;
+    int stride = blockDim.x * gridDim.x;
+    for (int i = idx; i < n; i += stride) {
+        c[i] = a[i] + b[i];
+    }
+}
+
 int main() {
     const int n = 1 << 24;  // 16M 元素，远多于 64 * 256 = 16384 个线程
     size_t bytes = (size_t)n * sizeof(float);
@@ -31,7 +39,8 @@ int main() {
     CUDA_CHECK(cudaMemcpy(d_b, h_b, bytes, cudaMemcpyHostToDevice));
     CUDA_CHECK(cudaMemset(d_c, 0, bytes));
 
-    vectorAdd<<<64, 256>>>(d_a, d_b, d_c, n);  // launch 配置不许动
+    // vectorAdd<<<64, 256>>>(d_a, d_b, d_c, n);  // launch 配置不许动
+    xcpc<<<64, 256>>>(d_a, d_b, d_c, n);
     CUDA_CHECK_KERNEL();
 
     CUDA_CHECK(cudaMemcpy(h_c, d_c, bytes, cudaMemcpyDeviceToHost));
