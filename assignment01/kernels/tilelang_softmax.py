@@ -19,10 +19,47 @@ contract：
 Tip: elementwise + 行内归约的 kernel 大概率是带宽瓶颈，可以想想理论上限是多少。
 """
 
+import functools
+
 import torch
 import tilelang
 import tilelang.language as T
 
 
+def make_softmax(M: int, N: int, dtype="float32"):
+    block_n = 1 << (N - 1).bit_length()
+    threads = 256 if block_n >= 256 else 128
+
+    @T.prim_func
+    def softmax_kernel(
+        x: T.Buffer((M, N), dtype),
+        y: T.Buffer((M, N), dtype),
+    ):
+        with T.Kernel(M, threads=threads) as bx:
+            x_local = T.alloc_fragment((1, block_n), dtype)
+            rmax = T.alloc_fragment((1,), dtype)
+            rsum = T.alloc_fragment((1,), dtype)
+
+            for _, j in T.Parallel(1, block_n):
+                x_local[0, j] = T.if_then_else(j < N, x[bx, j], -T.infinity(dtype))
+
+            T.reduce_max(x_local, rmax, dim=1)
+
+            for _, j in T.Parallel(1, block_n):
+                x_local[0, j] = T.exp(x_local[0, j] - rmax[0])
+
+            T.reduce_sum(x_local, rsum, dim=1)
+
+            for _, j in T.Parallel(1, N):
+                y[bx, j] = x_local[0, j] / rsum[0]
+
+    return softmax_kernel
+
+
+@functools.lru_cache(maxsize=None)
+def _compiled_softmax(M: int, N: int):
+    return tilelang.compile(make_softmax(M, N), out_idx=[1])
+
+
 def softmax(x: torch.Tensor) -> torch.Tensor:
-    raise NotImplementedError("从这里开始写")
+    return _compiled_softmax(x.shape[0], x.shape[1])(x)
