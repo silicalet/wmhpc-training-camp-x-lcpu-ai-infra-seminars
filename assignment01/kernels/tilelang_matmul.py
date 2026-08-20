@@ -62,7 +62,6 @@ def make_matmul(M, N, K, BLOCK_M=128, BLOCK_N=128, BLOCK_K=32,
                     k * BLOCK_K, bx * BLOCK_N
                 ], B_shared)
                 # ====== 空 5：tile 级乘累加，提示：T.gemm ======
-                ...
                 T.gemm(A_shared, B_shared, C_local)
 
             T.copy(C_local, C[by * BLOCK_M, bx * BLOCK_N])
@@ -85,7 +84,8 @@ def bench(M=2048, N=2048, K=2048):
         (64, 64, 32, 128, 3),
         (128, 128, 32, 128, 3),
         (128, 128, 64, 256, 3),
-        (128, 256, 64, 256, 3),
+        # 3 stages would require 144 KiB of shared memory for this tile.
+        (128, 256, 64, 256, 1),
     ]
 
     checked = False
