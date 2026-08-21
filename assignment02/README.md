@@ -50,6 +50,43 @@ cd assignment02
 uv sync && uv run pytest tests/
 ```
 
+## 一键上传与运行
+
+`run_assignment02.ab` 使用 Amber 编写，负责把当前 `assignment02/` 同步到
+`b300-login:~/assignment02`，然后通过 Slurm 在远端运行测试或 CUDA 练习。
+
+在本目录执行：
+
+```bash
+# 上传并在 CPU 节点运行 Python 测试
+amber run run_assignment02.ab
+
+# 同上，显式指定 test 模式
+amber run run_assignment02.ab test
+
+# 上传并在一张 B300 上编译、运行一个 CUDA 练习
+amber run run_assignment02.ab cuda m5_lowprec/03a_encode_check
+
+# 查看远端当前 Slurm 任务，不上传代码
+amber run run_assignment02.ab status
+```
+
+脚本会排除本地虚拟环境、Python 缓存、CUDA 编译产物和日志目录；远端 CUDA
+编译使用 `ARCH=100f` 默认架构。运行前确认本机已经能够执行：
+
+```bash
+ssh b300-login true
+```
+
+Amber 源文件也可以先编译成独立 Bash 脚本：
+
+```bash
+amber build run_assignment02.ab run_assignment02.sh
+./run_assignment02.sh cuda m5_lowprec/03a_encode_check
+```
+
+`run_assignment02.sh` 是生成文件，不应提交；建议加入 `.gitignore`。
+
 M6 另外使用固定的 TileLang 版本：
 
 ```bash

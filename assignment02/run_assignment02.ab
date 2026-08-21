@@ -1,0 +1,96 @@
+#!/usr/bin/env amber
+
+// Assignment 02: sync this directory to b300 and run a remote job.
+// Run from assignment02/:
+//   amber run run_assignment02.ab
+//   amber run run_assignment02.ab test
+//   amber run run_assignment02.ab cuda m5_lowprec/03a_encode_check
+//   amber run run_assignment02.ab status
+
+let remote = "b300-login"
+let remote_dir = "~/assignment02"
+
+fun usage() {
+    echo("Usage:")
+    echo("  amber run run_assignment02.ab")
+    echo("      Upload assignment02 and run Python tests on a CPU node")
+    echo("  amber run run_assignment02.ab test")
+    echo("      Upload assignment02 and run Python tests on a CPU node")
+    echo("  amber run run_assignment02.ab cuda TARGET")
+    echo("      Upload assignment02 and compile/run one CUDA target on one B300")
+    echo("      Example: cuda m5_lowprec/03a_encode_check")
+    echo("  amber run run_assignment02.ab status")
+    echo("      Show remote Slurm jobs without uploading")
+}
+
+fun sync_project() {
+    echo("==> Syncing assignment02 to {remote}:{remote_dir}")
+    $ rsync -avP --exclude '.venv/' --exclude '__pycache__/' --exclude '.pytest_cache/' --exclude 'cuda/bin/' --exclude 'cuda/**/*.ptx' --exclude 'logs/' ./ "{remote}:{remote_dir}/" $?
+}
+
+fun run_tests() {
+    echo("==> Running Python tests on a CPU node")
+    $ ssh {remote} "mkdir -p {remote_dir} && cd {remote_dir} && uv sync && srun --partition=cpu --cpus-per-task=8 --mem=32G --time=02:00:00 bash -lc 'uv run pytest tests/'" $?
+}
+
+fun run_cuda(target: Text) {
+    echo("==> Compiling and running cuda/{target} on one B300")
+    $ ssh {remote} "mkdir -p {remote_dir} && cd {remote_dir}/cuda && srun --partition=gpu --gres=gpu:1 --time=00:10:00 bash -lc 'make run/{target}'" $?
+}
+
+fun show_status() {
+    echo("==> Slurm jobs for the current user")
+    $ ssh {remote} "squeue -u 99043118 -o '%.18i %.9P %.24j %.8T %.10M %.6D %R'" $?
+}
+
+main (args) {
+    $ test -f README.md $?
+    $ test -d cuda $?
+
+    if len(args) <= 1 {
+        sync_project()?
+        run_tests()?
+        exit(0)
+    }
+
+    const mode = args[1]
+
+    if mode == "help" {
+        usage()
+        exit(0)
+    }
+    if mode == "--help" {
+        usage()
+        exit(0)
+    }
+    if mode == "-h" {
+        usage()
+        exit(0)
+    }
+
+    if mode == "status" {
+        show_status()?
+        exit(0)
+    }
+
+    if mode == "test" {
+        sync_project()?
+        run_tests()?
+        exit(0)
+    }
+
+    if mode == "cuda" {
+        if len(args) < 3 {
+            echo("Missing CUDA target.")
+            echo("Example: amber run run_assignment02.ab cuda m5_lowprec/03a_encode_check")
+            exit(2)
+        }
+        sync_project()?
+        run_cuda(args[2])?
+        exit(0)
+    }
+
+    echo("Unknown mode: {mode}")
+    usage()
+    exit(2)
+}

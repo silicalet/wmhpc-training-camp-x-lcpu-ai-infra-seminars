@@ -16,18 +16,20 @@
 
 每个 assignment 目录自带 README、handout PDF 与基础代码。
 
-### Nix devShell
+### Nix / devenv
 
-仓库提供基于 flake-parts 的开发环境，包含 CUDA Toolkit、Python、uv 和常用编译工具：
+仓库提供基于 [devenv](https://devenv.sh) 与 flake-parts 的开发环境，包含 CUDA Toolkit、Python、uv 和常用编译工具：
 
 ```bash
-nix develop
+nix develop --no-pure-eval
 cd assignment01
 uv sync --extra tilelang
 ```
 
+已安装 direnv 时进入仓库会自动加载（需先 `direnv allow`）。`--no-pure-eval` 是 devenv 查项目根目录所必需的。
+
 Python 依赖（包括 Torch、Triton 和可选的 TileLang）由各 assignment 的
-`pyproject.toml` 和 uv 管理，不会打包进 Nix devShell。首次进入环境和首次
+`pyproject.toml` 和 uv 管理，不会打包进 Nix 环境。首次进入环境和首次
 `uv sync` 都需要联网；运行 CUDA 程序仍需要宿主机安装兼容的 NVIDIA 驱动。
 
 ## 关于 AI 使用
