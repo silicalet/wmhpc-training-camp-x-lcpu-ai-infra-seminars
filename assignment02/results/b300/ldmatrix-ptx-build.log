@@ -1,0 +1,2 @@
+nvcc -O2 -std=c++17 -I. --expt-relaxed-constexpr -gencode arch=compute_100f,code=sm_100f -ptx -o m1_sm80/04_ldmatrix.ptx m1_sm80/04_ldmatrix.cu
+已生成 m1_sm80/04_ldmatrix.ptx

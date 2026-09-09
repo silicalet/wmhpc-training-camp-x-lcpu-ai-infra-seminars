@@ -56,3 +56,6 @@ secrets/
 
 # Organizer-only tooling (HPC Game 题库上传脚本等)
 tools/
+
+# Assignment 02 measured evidence (logs are part of the submission).
+!assignment02/results/**/*.log

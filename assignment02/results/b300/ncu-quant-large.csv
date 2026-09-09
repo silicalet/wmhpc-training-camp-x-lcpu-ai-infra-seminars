@@ -1,0 +1,6 @@
+==PROF== Connected to process 987910 (/home/lcpu/99043118/assignment02-codex-20260909/cuda/bin/bandwidth)
+M=4096 K=7168 probe_us=44.446 quant_us=43.296 fused_us=41.461 probe_GBs=1692.7 quant_GBs=1737.7 fused_GBs=1814.6 quant/ceiling=1.0266 fused/ceiling=1.0720
+==PROF== Disconnected from process 987910
+"ID","Process ID","Process Name","Host Name","Kernel Name","Context","Stream","Block Size","Grid Size","Device","CC","Section Name","Metric Name","Metric Unit","Metric Value"
+"0","987910","bandwidth","127.0.0.1","void nvfp4_quant_kernel<128>(const __nv_bfloat16 *, unsigned char *, unsigned char *, int, int)","1","7","(128, 1, 1)","(1184, 1, 1)","0","10.3","Command line profiler metrics","dram__throughput.avg.pct_of_peak_sustained_elapsed","%","28.99"
+"0","987910","bandwidth","127.0.0.1","void nvfp4_quant_kernel<128>(const __nv_bfloat16 *, unsigned char *, unsigned char *, int, int)","1","7","(128, 1, 1)","(1184, 1, 1)","0","10.3","Command line profiler metrics","sm__throughput.avg.pct_of_peak_sustained_elapsed","%","51.56"

@@ -1,10 +1,7 @@
 % pandoc 模板:版式与 assignment01/handout/assignment01.tex 相同,
 % 正文由 handout/src/*.md 生成,不要手工编辑生成出来的 .tex。
-\documentclass[11pt,a4paper,fontset=none]{ctexart}
+\documentclass[11pt,a4paper,fontset=fandol]{ctexart}
 
-\setCJKmainfont[BoldFont={Noto Serif CJK SC Bold}]{Noto Serif CJK SC}
-\setCJKsansfont[BoldFont={Noto Sans CJK SC Bold}]{Noto Sans CJK SC}
-\setCJKmonofont{Noto Sans CJK SC}
 \usepackage{geometry}
 \geometry{margin=2.3cm}
 
@@ -43,6 +40,45 @@
 \setlength{\LTpre}{0.6em}
 \setlength{\LTpost}{0.6em}
 
+\usepackage{color}
+\usepackage{fancyvrb}
+\newcommand{\VerbBar}{|}
+\newcommand{\VERB}{\Verb[commandchars=\\\{\}]}
+\DefineVerbatimEnvironment{Highlighting}{Verbatim}{commandchars=\\\{\}}
+% Add ',fontsize=\small' for more characters per line
+\newenvironment{Shaded}{}{}
+\newcommand{\AlertTok}[1]{\textcolor[rgb]{1.00,0.00,0.00}{\textbf{#1}}}
+\newcommand{\AnnotationTok}[1]{\textcolor[rgb]{0.38,0.63,0.69}{\textbf{\textit{#1}}}}
+\newcommand{\AttributeTok}[1]{\textcolor[rgb]{0.49,0.56,0.16}{#1}}
+\newcommand{\BaseNTok}[1]{\textcolor[rgb]{0.25,0.63,0.44}{#1}}
+\newcommand{\BuiltInTok}[1]{\textcolor[rgb]{0.00,0.50,0.00}{#1}}
+\newcommand{\CharTok}[1]{\textcolor[rgb]{0.25,0.44,0.63}{#1}}
+\newcommand{\CommentTok}[1]{\textcolor[rgb]{0.38,0.63,0.69}{\textit{#1}}}
+\newcommand{\CommentVarTok}[1]{\textcolor[rgb]{0.38,0.63,0.69}{\textbf{\textit{#1}}}}
+\newcommand{\ConstantTok}[1]{\textcolor[rgb]{0.53,0.00,0.00}{#1}}
+\newcommand{\ControlFlowTok}[1]{\textcolor[rgb]{0.00,0.44,0.13}{\textbf{#1}}}
+\newcommand{\DataTypeTok}[1]{\textcolor[rgb]{0.56,0.13,0.00}{#1}}
+\newcommand{\DecValTok}[1]{\textcolor[rgb]{0.25,0.63,0.44}{#1}}
+\newcommand{\DocumentationTok}[1]{\textcolor[rgb]{0.73,0.13,0.13}{\textit{#1}}}
+\newcommand{\ErrorTok}[1]{\textcolor[rgb]{1.00,0.00,0.00}{\textbf{#1}}}
+\newcommand{\ExtensionTok}[1]{#1}
+\newcommand{\FloatTok}[1]{\textcolor[rgb]{0.25,0.63,0.44}{#1}}
+\newcommand{\FunctionTok}[1]{\textcolor[rgb]{0.02,0.16,0.49}{#1}}
+\newcommand{\ImportTok}[1]{\textcolor[rgb]{0.00,0.50,0.00}{\textbf{#1}}}
+\newcommand{\InformationTok}[1]{\textcolor[rgb]{0.38,0.63,0.69}{\textbf{\textit{#1}}}}
+\newcommand{\KeywordTok}[1]{\textcolor[rgb]{0.00,0.44,0.13}{\textbf{#1}}}
+\newcommand{\NormalTok}[1]{#1}
+\newcommand{\OperatorTok}[1]{\textcolor[rgb]{0.40,0.40,0.40}{#1}}
+\newcommand{\OtherTok}[1]{\textcolor[rgb]{0.00,0.44,0.13}{#1}}
+\newcommand{\PreprocessorTok}[1]{\textcolor[rgb]{0.74,0.48,0.00}{#1}}
+\newcommand{\RegionMarkerTok}[1]{#1}
+\newcommand{\SpecialCharTok}[1]{\textcolor[rgb]{0.25,0.44,0.63}{#1}}
+\newcommand{\SpecialStringTok}[1]{\textcolor[rgb]{0.73,0.40,0.53}{#1}}
+\newcommand{\StringTok}[1]{\textcolor[rgb]{0.25,0.44,0.63}{#1}}
+\newcommand{\VariableTok}[1]{\textcolor[rgb]{0.10,0.09,0.49}{#1}}
+\newcommand{\VerbatimStringTok}[1]{\textcolor[rgb]{0.25,0.44,0.63}{#1}}
+\newcommand{\WarningTok}[1]{\textcolor[rgb]{0.38,0.63,0.69}{\textbf{\textit{#1}}}}
+
 % 参考资料框
 \newtcolorbox{reading}{enhanced, breakable,
   colback=gray!5, colframe=gray!50, boxrule=0.5pt, arc=1.5pt,
@@ -63,6 +99,14 @@
   title={Editor's Note}, fonttitle=\bfseries\sffamily\small,
   coltitle=black, attach title to upper={\quad},
   before upper app={\setlength{\parskip}{0.5em}}}
+
+% 学员作答
+\newtcolorbox{answer}{enhanced, breakable,
+  colback=strgreen!3, colframe=strgreen!55, boxrule=0.5pt, arc=1.5pt,
+  left=7pt, right=7pt, top=5pt, bottom=5pt,
+  title={作答}, fonttitle=\bfseries\sffamily\small,
+  coltitle=black, attach title to upper={\quad},
+  before upper app={\setlength{\parskip}{0.4em}}}
 
 % 题目标题:\prob{编号}{TYPE};选做 \prob[Optional]{编号}{TYPE};
 % 末尾可选参数标注涉及的代码文件
@@ -174,6 +218,44 @@ make run/m0_env/01_first_mma
 使用默认配置）。尝试使用不匹配的 ARCH 编译运行一次，记录现象，并结合
 assignment01 Module 8 中 fatbin/JIT 的内容解释原因。可使用 make
 ptx/m0\_env/01\_first\_mma 查看生成的 PTX。
+
+\begin{answer}
+
+硬件：RTX 4060 Laptop GPU，compute capability 8.9。\texttt{nvcc} 12.9。
+
+默认 \texttt{make\ run/m0\_env/01\_first\_mma} 使用
+\texttt{ARCH=100f}，即
+\texttt{-gencode\ arch=compute\_100f,code=sm\_100f}。编译成功，运行在
+\texttt{CUDA\_CHECK\_KERNEL()}（\texttt{01\_first\_mma.cu:76}）处失败：
+
+\begin{verbatim}
+CUDA error cudaErrorNoKernelImageForDevice at m0_env/01_first_mma.cu:76:
+no kernel image is available for execution on the device
+\end{verbatim}
+
+\texttt{cudaMalloc} / \texttt{cudaMemcpy} 不需要 device
+image，所以能走到 launch 之后
+才报错。\texttt{make\ ptx/m0\_env/01\_first\_mma} 生成的 PTX 写着
+\texttt{.target\ sm\_100f}， fatbin 里只有 Blackwell 的 SASS，没有 Ada
+的 cubin，也没有可 JIT 到 sm\_89 的低架构 PTX。
+
+匹配本机后通过：
+
+\begin{verbatim}
+ARCH=89 make -B run/m0_env/01_first_mma
+D[0][0]=2 D[0][7]=2 D[15][0]=2 D[15][7]=2
+PASS
+\end{verbatim}
+
+这与 assignment01 Module 8 的 sassonly / ptxonly 实验同一机制：driver
+只从 fatbin 里挑与当前 compute capability 匹配的 SASS；对不上且没有 PTX
+fallback 时，JIT 无法兜底，launch 报
+\texttt{cudaErrorNoKernelImageForDevice}。 Makefile 用显式
+\texttt{-gencode} 只嵌一种 \texttt{sm\_\$(ARCH)}，默认面向 B300，本机
+4060 必须改 \texttt{ARCH=89}。5090 用 \texttt{ARCH=120a}，B300 用默认
+\texttt{100f}。
+
+\end{answer}
 
 \prob{0.2}{DERIVE}
 

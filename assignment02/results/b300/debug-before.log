@@ -1,0 +1,13 @@
+MISMATCH D[8][0]: got -1, want -11
+MISMATCH D[8][1]: got -5, want 5
+MISMATCH D[8][2]: got -16, want -14
+MISMATCH D[8][3]: got 15, want 9
+FAIL: 59 / 128 mismatches
+exit=1
+rounds=1
+PASS seed=42
+exit=0
+rounds=2
+exit=124
+rounds=4
+exit=124

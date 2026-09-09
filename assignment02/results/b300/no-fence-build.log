@@ -1,0 +1,1 @@
+nvcc -O2 -std=c++17 -I. --expt-relaxed-constexpr -DOMIT_PROXY_FENCE -gencode arch=compute_100f,code=sm_100f -o bin/m3_tcgen05/02_single_tile m3_tcgen05/02_single_tile.cu

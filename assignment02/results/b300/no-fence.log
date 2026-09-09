@@ -1,0 +1,6 @@
+PASS seed=1
+PASS seed=7
+PASS seed=42
+PASS seed=1234
+PASS seed=99999
+JUDGE: PASS

@@ -19,13 +19,22 @@ template <int BLOCK>
 __global__ void probe_kernel(const __nv_bfloat16* __restrict__ in,
                              uint8_t* __restrict__ dataOut,
                              uint8_t* __restrict__ sfOut, int M, int K) {
-    // TODO: 与你的 quant kernel 同形的访存,xor 直通,无数学。
+    for (int g = blockIdx.x * BLOCK + threadIdx.x; g < M * (K / 16);
+         g += gridDim.x * BLOCK) {
+        const auto *p = reinterpret_cast<const uint4 *>(in + size_t(g) * 16);
+        uint4 a = p[0], b = p[1];
+        uint2 out = make_uint2(a.x ^ a.z ^ b.x ^ b.z, a.y ^ a.w ^ b.y ^ b.w);
+        reinterpret_cast<uint2 *>(dataOut)[g] = out;
+        sfOut[sf_swizzled_offset(g / (K / 16), g % (K / 16), nvfp4_num_ktiles(K))] = out.x ^ out.y;
+    }
 }
 
 static void launch_probe(const __nv_bfloat16* in, uint8_t* dataOut,
                          uint8_t* sfOut, int M, int K, int sms) {
-    // TODO: 启动配置。
-    (void)in; (void)dataOut; (void)sfOut; (void)M; (void)K; (void)sms;
+    constexpr int B = 128;
+    int grid = (M * (K / 16) + B - 1) / B;
+    grid = grid < sms * 8 ? grid : sms * 8;
+    probe_kernel<B><<<grid, B>>>(in, dataOut, sfOut, M, K);
 }
 
 int main() {

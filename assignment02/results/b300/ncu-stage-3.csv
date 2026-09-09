@@ -1,0 +1,7 @@
+==PROF== Connected to process 993758 (/home/lcpu/99043118/assignment02-codex-20260909/cuda/bin/m4_gemm/03_pipeline)
+RESOURCES S=3 dynamic_smem=74752 static_smem=64 registers=32 blocks/SM=1
+[4.3 pipeline S=3] M=4096 N=4096 K=4096  PASS(bad=0)  0.39 ms  348.4 TFLOPS  (cuBLAS 1049.3, 达成率 33%)
+==PROF== Disconnected from process 993758
+"ID","Process ID","Process Name","Host Name","Kernel Name","Context","Stream","Block Size","Grid Size","Device","CC","Section Name","Metric Name","Metric Unit","Metric Value"
+"0","993758","03_pipeline","127.0.0.1","gemm_pipeline(const __nv_bfloat16 *, const __nv_bfloat16 *, float *, int, int, int, CUtensorMap_st, CUtensorMap_st)","1","7","(128, 1, 1)","(32, 64, 1)","0","10.3","Command line profiler metrics","sm__ctas_active.avg","block","1153308.11"
+"0","993758","03_pipeline","127.0.0.1","gemm_pipeline(const __nv_bfloat16 *, const __nv_bfloat16 *, float *, int, int, int, CUtensorMap_st, CUtensorMap_st)","1","7","(128, 1, 1)","(32, 64, 1)","0","10.3","Command line profiler metrics","sm__warps_active.avg.pct_of_peak_sustained_active","%","16.82"

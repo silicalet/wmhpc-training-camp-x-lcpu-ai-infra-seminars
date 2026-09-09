@@ -25,6 +25,12 @@ M2 的判测纯 host，无卡可判；M3、M4、M5 需要 B300。本作业统一
 AI政策:必做题沿用仓库根目录 `CLAUDE.md`——AI 可以帮你理解、
 review，不能替你实现；团队题不设限制。详见 `assignment02/README.md`。
 
+::: answer
+本次作答环境（2026-09-09）：本地为 AMD Ryzen AI 9 HX 370 / nvcc 12.9.86；本次 `nvidia-smi` 无法连接 NVIDIA 驱动，host/Python 判测在本地完成。GPU 实验使用 SSH `b300-login` 经 Slurm 分配的 NVIDIA B300 SXM6 AC（sm_103，148 SM）/ nvcc 13.0.88，代码使用 `ARCH=100f`。
+
+必做 M0–M6 全部作答；4.4、5.3(d) 和团队 C1/C2 未选做。每题的命令、原始数据和判测输出保存于 `assignment02/results/`；路径均相对 `assignment02/`。性能表采用 CUDA events 预热后的平均计时，NCU 数据用于性能归因。`results/README.md` 给出证据索引和复现步骤。
+:::
+
 ## Content {-}
 
 | Module | 主题 | 对应课件 | 代码位置 |
@@ -58,6 +64,24 @@ make run/m0_env/01_first_mma
 
 在你能使用的 GPU 上分别运行该程序（5090 使用 ARCH=120a make ...，B300 使用默认配置）。尝试使用不匹配的 ARCH 编译运行一次，记录现象，并结合 assignment01 Module 8 中 fatbin/JIT 的内容解释原因。可使用 make ptx/m0_env/01_first_mma 查看生成的 PTX。
 
+::: answer
+硬件：NVIDIA B300 SXM6 AC，compute capability 10.3，148 SM；CUDA 13.0 / nvcc 13.0.88，`ARCH=100f`。
+
+本次本地 `nvidia-smi` 无法连接驱动（`results/local/environment.log`），GPU 判测使用 B300，数据来自 Slurm 作业 23618。
+
+```bash
+cd assignment02/cuda
+make -B run/m0_env/01_first_mma
+make -B ARCH=89 bin/m0_env/01_first_mma
+./bin/m0_env/01_first_mma
+```
+
+匹配架构输出 `D[0][0]=2 D[0][7]=2 D[15][0]=2 D[15][7]=2`、`PASS`。
+不匹配版本的完整错误见 `results/b300/arch-mismatch.log`。Makefile 生成的 fatbin 仅含 `sm_89` SASS；在 sm_103 上，`cudaMalloc` 成功，kernel launch 检查报架构错误。恢复默认架构后强制重编。
+
+PTX/SASS 与 JIT 的区别：SASS 是目标架构的机器码，PTX 可由 driver JIT 编译为目标机器码。driver 从 fatbin 选择镜像，PTX fallback 需要在构建时显式嵌入。
+:::
+
 ### 0.2 {.prob type=DERIVE}
 
 推导你所使用 GPU 的 Tensor Core 理论峰值。参考课上 A100 的推导方法（S018--S019），分别计算 5090 和 B300 的 bf16 峰值，并根据 dtype 宽度关系估算 fp8 / fp4 峰值。
@@ -76,6 +100,32 @@ make run/m0_env/01_first_mma
 
 根据 bf16 峰值和显存带宽计算机器平衡点（FLOP/byte），并与单条 mma 的计算强度（S016，m16n8k16 fp16 为 3.2 FLOP/byte）比较。思考两者之间的差距意味着什么，以及为什么后续 M2--M4 需要从数据供给路径入手优化。
 
+::: answer
+硬件：NVIDIA B300 SXM6 AC，compute capability 10.3，148 SM；CUDA 13.0 / nvcc 13.0.88，`ARCH=100f`。
+
+口径：dense，FMA=2 FLOP，BF16/FP8 均按 FP32 累加。5090 用官方 boost 2.407 GHz；B300 分别按本机 `clocks.max.sm=2032 MHz` 计算时钟上界，并列出官方系统规格供对照。
+
+| 量 | RTX 5090（资料对照） | 本次 B300 |
+|---|---:|---:|
+| SM 数 | 170 | 实测 148 |
+| BF16 FLOP/cycle/SM | 512 | 8192 |
+| BF16 按上述时钟算 TFLOPS | 209.5 | 2463.6 |
+| FP8 纯位宽估计 TFLOPS | 419.0 | 4927.3 |
+| FP4 纯位宽估计 TFLOPS | 838.0 | 9854.6 |
+| 官方 dense BF16 / FP8 / FP4 TFLOPS | 209.5 / 419 / 1676 | 2250 / 4500 / 13500 |
+| 显存带宽 GB/s | 1792 | 8000 |
+| 官方 BF16 机器平衡点 FLOP/B | 116.9 | 281.25 |
+| 最大时钟上界对应平衡点 FLOP/B | 116.9 | 307.95 |
+
+推导：$P=N_{\mathrm{SM}}qf$。5090 为 $170\times512\times2.407=209500.16$ GFLOPS；B300 的时钟上界估算为 $148\times8192\times2.032=2463629.312$ GFLOPS。由官方 2250 TFLOPS 反推，等效重载频率约为 1.856 GHz。
+
+官方 HGX B300 的 BF16/FP8 是八卡 sparse 数据：36/72 PFLOPS 除以 8 再除以 2，得到 2250/4500 TFLOPS。FP4 写作 sparse|dense=144|108 PFLOPS，dense 单卡为 13500。5090 的 FP4 相对 BF16 FP32 累加为 8 倍；B300 Ultra FP4 也有额外吞吐增强，因此 FP4 峰值采用官方规格。
+
+后续 4.5 按官方 2250 TFLOPS、8000 GB/s 统一计算 roofline。单条 MMA 的 3.2 FLOP/B 远低于两块卡的平衡点；需要跨指令复用、减少搬运和隐藏供数延迟。
+
+来源：[RTX Blackwell 白皮书 Table 3](https://images.nvidia.com/aem-dam/Solutions/geforce/blackwell/nvidia-rtx-blackwell-gpu-architecture.pdf)、[HGX 规格及 dense/sparse 脚注](https://www.nvidia.com/en-us/data-center/hgx/)、[Stanford CS149 Tensor Core 吞吐表](https://gfxcourses.stanford.edu/cs149/fall25content/media/proghardware/11_SpecializedHardwareProgramming.pdf)。本机配置见 `results/b300/device.log`、`gpu-details.csv`。
+:::
+
 ### 0.3 {.prob type=CONCEPT}
 
 判断下列说法是否正确，并给出一句理由。
@@ -91,6 +141,18 @@ make run/m0_env/01_first_mma
 
 (d) 只要单条 mma 的计算强度低于机器平衡点，GEMM kernel 就不可能逼近
 计算峰值。
+
+::: answer
+硬件：NVIDIA B300 SXM6 AC，compute capability 10.3，148 SM；CUDA 13.0 / nvcc 13.0.88，`ARCH=100f`。
+
+(a) 对，按题设口径分母包括 A/B 读取及 D 写回，分子为 $2MNK$。
+
+(b) 对，`mma.sync.aligned` 要求参与 warp 的 lane 一致执行，fragment 是各 lane 合作持有的矩阵切片。
+
+(c) 错，更大的形状增加寄存器或 TMEM、shared memory 和同步开销，还可能增加边界浪费，降低可驻留 CTA 数。
+
+(d) 错，kernel 可在 shared memory 中复用 A/B，并让累加结果跨多条 MMA 留在寄存器或 TMEM。沿 K 保留累加器减少中间输出流量，沿 M/N 复用输入减少重复读取，kernel 的强度可以远高于单条指令。
+:::
 
 # sm80:fragment 与 mma.sync
 
@@ -115,10 +177,63 @@ mma.m16n8k32" 一节与 "Warp-level matrix load instruction: ldmatrix"
 cd assignment02/cuda
 make run/m1_sm80/01_fragment_map
 ```
+::: answer
+硬件：本地 AMD Ryzen AI 9 HX 370（CPU 实验，compute capability 不适用）；nvcc 12.9.86。
 
-附加问题（写入报告）：
-A 的同一个 b32 寄存器中的 4 个 fp8 元素沿矩阵哪个方向相邻？
-这个布局对 1.4 中使用 ldmatrix load 有什么影响？
+设 `lane` 为 lane 号，`i` 为本 lane fragment 中的 byte 序号，
+`r = i / 4` 为 b32 寄存器号，`j = i % 4` 为寄存器内 byte 序号。
+
+对于 A（`i=0..15`，逻辑形状 $16\times32$）：
+
+$$
+\begin{aligned}
+\mathrm{row}_A(lane,i) &= (lane\mathbin{>>}2)+8(r\mathbin{\&}1),\\
+\mathrm{col}_A(lane,i) &= 4(lane\mathbin{\&}3)+16(r\mathbin{>>}1)+j.
+\end{aligned}
+$$
+
+```cpp
+static int a_row_of(int lane, int i) {
+    int r = i / 4;
+    return (lane >> 2) + 8 * (r & 1);
+}
+
+static int a_col_of(int lane, int i) {
+    int r = i / 4;
+    return 4 * (lane & 3) + 16 * (r >> 1) + (i & 3);
+}
+```
+
+对于 B（`i=0..7`，逻辑形状 $32\times8$，函数返回值的 row 就是 K 维）：
+
+$$
+\begin{aligned}
+\mathrm{row}_B(lane,i) &= 4(lane\mathbin{\&}3)+(i\mathbin{\&}3)+16(i\mathbin{>>}2),\\
+\mathrm{col}_B(lane,i) &= lane\mathbin{>>}2.
+\end{aligned}
+$$
+
+```cpp
+static int b_row_of(int lane, int i) {
+    return 4 * (lane & 3) + (i & 3) + 16 * (i >> 2);
+}
+
+static int b_col_of(int lane, int i) {
+    return lane >> 2;
+}
+```
+
+例如 lane 0 的 A fragment 是
+`(row,col)=(0,0..3),(8,0..3),(0,16..19),(8,16..19)`；
+lane 0 的 B fragment 是
+`(k,n)=(0..3,0),(16..19,0)`。本次运行 `ARCH=89 make -B run/m1_sm80/01_fragment_map` 输出
+`PASS`，记录见 `results/local/host-tests.log`。
+
+附加问题：A 的同一个 b32 寄存器含有 4 个连续 FP8 byte，公式中变化的
+`j` 对应 A 的列方向，即 K 方向。`ldmatrix` 按矩阵行地址组织 shared
+memory 访问；各 lane 按 PTX fragment 映射提供地址，将相应的连续 FP8
+元素装入寄存器。
+:::
 
 ### 1.2 {.prob type=DEBUG file=cuda/m1_sm80/02_bug_fragment.cu}
 
@@ -132,6 +247,14 @@ A 的同一个 b32 寄存器中的 4 个 fp8 元素沿矩阵哪个方向相邻�
 cd assignment02/cuda
 make run/m1_sm80/02_bug_fragment
 ```
+
+::: answer
+硬件：NVIDIA B300 SXM6 AC，compute capability 10.3，148 SM；CUDA 13.0 / nvcc 13.0.88，`ARCH=100f`。
+
+先运行未修改版本：前四处错误是 `D[8][0..3]`，got 为 `-1,-5,-16,15`，want 为 `-11,5,-14,9`；总计 `59 / 128 mismatches`。上半 8 行正确，下半 8 行重复上半的结果，其中 5 个元素碰巧相等。
+
+A 的 `a2/a3/a6/a7` 应来自 `group+8` 行，错误版本仍读取 `group` 行；B 和 D 的映射无误。修复这四个源地址后，`make -B run/m1_sm80/02_bug_fragment` 输出 `PASS`。原始源码在 `results/original/02_bug_fragment.cu`，前后记录在 `results/b300/debug-before.log` 和 `02_bug_fragment.log`。
+:::
 
 ::: {.capstone title="prob 1.3(FROM-SCRATCH):手写单 tile fp8 mma"}
 
@@ -156,6 +279,19 @@ cd assignment02/cuda/m1_sm80
 ./judge_mma_fp8.sh 03_mma_fp8.cu
 ```
 
+::: answer
+硬件：NVIDIA B300 SXM6 AC，compute capability 10.3，148 SM；CUDA 13.0 / nvcc 13.0.88，`ARCH=100f`。
+
+实现文件 `cuda/m1_sm80/03_mma_fp8.cu`。按 1.1 的映射从 global memory 逐 byte 装载，四个 A 寄存器、两个 B 寄存器组成一条 `m16n8k32` E4M3 MMA；D 按 m16n8 的四元素映射写回。随机小整数都可被 FP8 精确表示，f32 整数和也可精确表示，因而使用严格相等比较。
+
+```bash
+cd assignment02/cuda/m1_sm80
+bash judge_mma_fp8.sh 03_mma_fp8.cu
+```
+
+seed `1,7,42,1234,99999` 全部 `PASS ... bad=0`，最终 `JUDGE: PASS`；原始输出 `results/b300/judge-fp8.log`。
+:::
+
 :::
 
 ### 1.4 {.prob type=MODIFY file=cuda/m1_sm80/04_ldmatrix.cu}
@@ -169,6 +305,28 @@ cd assignment02/cuda/m1_sm80
 (a) `ldmatrix` 省掉了手工装载中的哪些工作？
 
 (b) 为什么这些工作在手工装载路径中无法避免？
+
+::: answer
+硬件：NVIDIA B300 SXM6 AC，compute capability 10.3，148 SM；CUDA 13.0 / nvcc 13.0.88，`ARCH=100f`。
+
+`make -B run/m1_sm80/04_ldmatrix`：seeds=1、7、42 的 manual/ldsm 两条路径均 `PASS(0)`。A 使用 `ldmatrix.m8n8.x4.b16`，B 使用 `.x2.b16`，均不转置；B 改用 `[N][K]` shared 布局，让每行的 16B 连续 FP8 满足行地址要求。b16 只是 16 个原始 bit，实际装入两个连续 E4M3。
+
+```bash
+make -B ptx/m1_sm80/04_ldmatrix
+cuobjdump --dump-sass bin/m1_sm80/04_ldmatrix
+```
+
+计数范围限定在生成 PTX 的 `bar.warp.sync` 之后、`mma.sync` 之前，排除 global staging、输出地址和常量初始化。
+
+| 路径 | shared 装载指令 | 地址算术/位运算 | shared 符号地址 mov | byte 打包算术 |
+|---|---:|---:|---:|---:|
+| manual | 4×u32 + 8×u8 = 12 | 12 | 2 | 12 |
+| ldmatrix | x4 + x2 = 2 | 10 | 2 | 0 |
+
+源码逐 byte 描述 A，编译器将相邻的四个 byte 合并为 u32；B 的 K-major 手工路径跨 8B 取字节，需要装载、移位与 OR 打包。ldmatrix 通过 warp 协作完成分发和打包，由线程提供矩阵行地址。手工路径也可通过预转置 B 减少普通 load。
+
+证据：`results/b300/04_ldmatrix.log`、`ldmatrix.ptx.txt`、`ldmatrix.sass.txt`、`ldmatrix-counts.txt`。
+:::
 
 ### 1.5 {.prob type=EXPERIMENT file=cuda/m1_sm80/05_ldsm_stride.cu}
 
@@ -194,6 +352,23 @@ ncu --metrics l1tex__data_pipe_lsu_wavefronts_mem_shared_op_ld.sum,l1tex__data_b
 比较预测与实测结果：哪一种行跨度使 wavefront 数增加到 4 倍？
 wavefront 的比例应与 bank 模型一致，但实际耗时的差距通常没有这么大。
 结合 8 个 warp 的占用情况，解释为什么 wavefront 增加 4 倍并不会使总耗时也增加 4 倍。
+
+::: answer
+硬件：NVIDIA B300 SXM6 AC，compute capability 10.3，148 SM；CUDA 13.0 / nvcc 13.0.88，`ARCH=100f`。
+
+运行题面 `make -B run/m1_sm80/05_ldsm_stride` 与两个 NCU metrics，计数采用每档第二次 launch（与第一次相同），未经 profiler 的 cycle 数据用于时延比较。
+
+| 行跨度 | 预测 wavefront 比（32B=1） | 实测 wavefront | 实测 conflict | 平均 cycle |
+|---|---:|---:|---:|---:|
+| 32 B | 1 | 16384 | 8192 | 9.72 |
+| 64 B | 2 | 32768 | 24576 | 10.75 |
+| 128 B | 4 | 65536 | 57344 | 16.06 |
+| 144 B | 0.5 | 8192 | 0 | 9.23 |
+
+按 32 个 4B bank，行地址步长分别为 8、16、32、36 bank；一组八行的起始 16B chunk 分别覆盖 4、2、1、8 个不同位置，因而相对无冲突 144B 档的冲突倍数为 2:4:8:1。128B 是 32B 的 4 倍，但 cycle 仅约 1.65 倍。
+
+wavefront 统计 shared 服务次数。程序发射 8 个 warp，调度可重叠各 warp 的地址计算、循环、XOR 与访存等待，kernel 总耗时由这些开销共同决定。表中计数为整个 kernel 的总量，原始记录见 `05_ldsm_stride.log`、`ncu-stride.csv`。
+:::
 
 ::: lookback
 
@@ -233,6 +408,17 @@ Memory Layout" 与 swizzling 小节。
 2. `wgmma.commit_group` 会阻塞，直到它之前发射的 wgmma 全部完成。
 3. 不加 `fence.proxy.async` 时，wgmma 可能读到 shared memory 中的旧值，因为 `st.shared` 的写经过 generic proxy，而 wgmma 的读经过 async proxy。
 
+::: answer
+硬件：本地 AMD Ryzen AI 9 HX 370（CPU 实验，compute capability 不适用）；nvcc 12.9.86。
+
+(a) 顺序为：`st.shared → fence.proxy.async.shared::cta → wgmma.fence → wgmma.mma_async → wgmma.commit_group → wgmma.wait_group 0`。若 shared 数据由多个线程提供，还必须在消费者使用前用适当的 CTA/warpgroup 同步确保所有生产者已完成。
+
+`st.shared` 产生 generic-proxy 写；proxy fence 使 async-proxy 的 MMA 能观察它；`wgmma.fence` 将此前的寄存器访问与后续 WGMMA 排序；MMA 异步发射，commit 将其组成待完成组，wait 等待相应结果就绪。
+
+(b) 1 错：跨 generic/async proxy 的 TMA、tcgen05 场景同样需要按数据依赖使用 proxy fence。2 错：commit 完成分组后返回，结果就绪由 wait 保证。3 对：缺失跨 proxy 排序时，异步消费者可能读取 shared 中的旧值。
+
+出处：PTX ISA 的 WGMMA asynchronous operations / proxy fence 小节。
+:::
 
 ### 2.2 {.prob type=DERIVE file=cuda/m2_smem/02_descriptor.cu}
 
@@ -251,6 +437,28 @@ make run/m2_smem/02_descriptor
 
 场景 2 和场景 3 最终得到的 descriptor 相同。在报告中回答：MN-major 与 K-major 的区别体现在哪里？
 
+::: answer
+硬件：本地 AMD Ryzen AI 9 HX 370（CPU 实验，compute capability 不适用）；nvcc 12.9.86。
+
+编码公式（所有地址以 byte 输入）：
+
+$$\begin{aligned}
+d={}&((a\gg4)\mathbin{\&}16383)\;|\;(((L\gg4)\mathbin{\&}16383)\ll16)\\
+ &{}|\;(((S\gg4)\mathbin{\&}16383)\ll32)\;|\;(1\ll46)\;|\;(layout\ll61).
+\end{aligned}$$
+
+| 场景 | LBO (B) | SBO (B) | layout | descriptor |
+|---|---:|---:|---:|---|
+| K-major NONE | 128 | 1024 | 0 | `0x0000404000080100` |
+| K-major 128B | 0 | 1024 | 2 | `0x4000404000000200` |
+| MN-major 128B | 0 | 1024 | 2 | `0x4000404000000300` |
+
+无 swizzle 的 core matrix 为 $8\times16$ B，沿 K 移一个 core 为 128 B；64 个 bf16 的 K 维有 8 个 core，沿 MN 跨 core 为 1024 B。128B swizzle 的 atom 为 $8\times128=1024$ B，LBO 被忽略，填 0。
+
+场景 2/3 的布局字段相同，起始地址字段不同，因此完整的 64 位描述符值不同。K-major/MN-major 的转置解释在 MMA 的 instruction descriptor 中，数据按对应 major 方向摆放。
+
+`ARCH=89 make -B run/m2_smem/02_descriptor`：三个场景均 `PASS`；见 `results/local/host-tests.log`。
+:::
 
 ### 2.3 {.prob type=FROM-SCRATCH file=cuda/m2_smem/03_swizzle.cu}
 
@@ -267,6 +475,21 @@ make run/m2_smem/03_swizzle
 
 本题实现的 `swizzle_128B` 会在 3.2 中直接用于 shared memory staging，并接受实际硬件上的 GEMM 判测。若 3.2 或 4.1 出现问题，可以先运行本题的判测，排除 swizzle 布局错误。
 
+::: answer
+硬件：本地 AMD Ryzen AI 9 HX 370（CPU 实验，compute capability 不适用）；nvcc 12.9.86。
+
+令行内逻辑 byte 地址为 $c$，每个 16B chunk 的低四位保持不动：
+
+$$\begin{aligned}
+p_{128}&=128r+(c\oplus((r\mathbin{\&}7)\ll4)),\\
+p_{64}&=64r+(c\oplus((r\mathbin{\&}3)\ll4)),\\
+p_{32}&=32r+(c\oplus((r\mathbin{\&}1)\ll4)).
+\end{aligned}$$
+
+对应异或位段：128B 为地址 `[6:4] ^= [9:7]`，64B 为 `[5:4] ^= [7:6]`，32B 为 `[4] ^= [5]`。固定行内 XOR 自反，行号不变，所以映射双射；固定逻辑 chunk 时，8/4/2 行分别遍历所有物理 chunk，因此满足题目的列访问判测。
+
+`ARCH=89 make -B run/m2_smem/03_swizzle` 输出 `128B PASS`、`64B PASS`、`32B PASS`。3.2 也已通过硬件 GEMM 对拍，进一步验证 128B staging 与 descriptor 配对。
+:::
 
 ::: lookback
 
@@ -302,6 +525,19 @@ ld / fence）与 mbarrier 一节。
 
 (e) `tcgen05.commit` 会阻塞直到之前发射的 mma 全部完成，因此 commit 返回后即可安全读取 TMEM。
 
+::: answer
+硬件：NVIDIA B300 SXM6 AC，compute capability 10.3，148 SM；CUDA 13.0 / nvcc 13.0.88，`ARCH=100f`。
+
+(a) 对，本题使用的 TMEM load warp 布局中，每个 warp 访问对应的 32 行，因此 128 行输出要由四个 warp 合作读回。
+
+(b) 对，`tcgen05.mma` 由选出的单线程发射；alloc/ld 等指令按各自的 warp 一致性要求执行。
+
+(c) 错，结果通过 `tcgen05.ld → registers → global store` 写回。
+
+(d) 对，总容量 $128\times512\times4=262144$ B = 256 KiB；m128n256 accumulator 是 $128\times256\times4=131072$ B = 128 KiB，恰好一半。
+
+(e) 错，commit 发起异步完成通知，必须等待对应 mbarrier phase 完成，再执行 `tcgen05.fence::after_thread_sync` 和 TMEM load。
+:::
 
 ::: {.capstone title="prob 3.2(FROM-SCRATCH):tcgen05 单 tile GEMM" file=cuda/m3_tcgen05/02_single_tile.cu}
 
@@ -325,6 +561,22 @@ cd m3_tcgen05 && ./judge_tile.sh
 
 在正确版本通过后，故意去掉 `fence.proxy.async` 再运行一次，记录出现的现象并写入报告。结合 2.1(a) 中的排序问题解释原因。
 
+::: answer
+硬件：NVIDIA B300 SXM6 AC，compute capability 10.3，148 SM；CUDA 13.0 / nvcc 13.0.88，`ARCH=100f`。
+
+完成 128-thread CTA 的七步路径：初始化 count=1 的 barrier、warp 0 分配 64 列 TMEM、全 CTA swizzled staging、proxy fence、单线程发四条 k16 MMA 并 commit、等待并由四个 warp 回读、释放 TMEM。首条 MMA 的 input-D=false，其后三条累加；load 后执行 `tcgen05.wait::ld`。
+
+```bash
+cd assignment02/cuda
+make -B run/m3_tcgen05/02_single_tile
+(cd m3_tcgen05 && bash judge_tile.sh)
+```
+
+五个 seed 全部 `PASS`、`JUDGE: PASS`（`results/b300/judge-tcgen.log`）。
+
+通过 `-DOMIT_PROXY_FENCE` 构建省略 proxy fence 的版本，运行相同多 seed 判测，五个 seed 全部 PASS，见 `results/b300/no-fence.log`。该版本 generic 写与 async 读的可见性依赖硬件时序；规范要求用 proxy fence 建立排序。最终版本保留 fence，并通过多 seed 判测。
+:::
+
 :::
 
 
@@ -346,6 +598,25 @@ cd m3_tcgen05 && ./judge_mbar.sh
 
 提示：注意 `tcgen05.ld` 与尚未完成的 mma 之间的关系。
 
+::: answer
+硬件：NVIDIA B300 SXM6 AC，compute capability 10.3，148 SM；CUDA 13.0 / nvcc 13.0.88，`ARCH=100f`。
+
+原始版本 seed=42：rounds=1 为 `PASS`；rounds=2、4 都在 15 秒超时后退出 124。修复后 rounds=1、2、4 × seeds=42、7 全部 `PASS`，最终 `JUDGE: PASS`。
+
+正确状态机（count 每轮重新装载为 1）：
+
+```text
+初始 (phase=0, pending=1)
+round 0: commit 完成 → (0,0) → (1,1); wait(0) 放行
+round 1: commit 完成 → (1,0) → (0,1); wait(1) 放行
+round 2: commit 完成 → (0,0) → (1,1); wait(0) 放行
+round 3: commit 完成 → (1,0) → (0,1); wait(1) 放行
+```
+
+错误版本每次都 `wait(0)`。第一轮后 phase=1，第二轮 wait(0) 可能在第二条 MMA 完成前过早放行，使 TMEM load 与在飞 MMA 冲突；若第二轮 MMA 已完成，phase 回到 0，wait(0) 会等待下一次翻转，此时下一轮发射也被阻塞，形成死锁。具体表现取决于 MMA 完成与 wait 检查的先后顺序。
+
+修复为 `mbar_wait(mbar_u32, round & 1)`；读完后用 `wait::ld`、`fence::before_thread_sync` 和 CTA barrier，保证下一轮写 TMEM 前四个 warp 均完成读取。源码快照与原始日志分别在 `results/original/03_bug_mbarrier.cu`、`results/b300/debug-before.log`。
+:::
 
 ### 3.4 {.prob type=EXPERIMENT file=cuda/m3_tcgen05/04_cta_pair.cu}
 
@@ -371,6 +642,22 @@ make run/m3_tcgen05/04_cta_pair
 ```
 
 在这个单 tile 实验中，两种实现的运行时间差异处于噪声范围内，因此不要用耗时判断优劣。主要比较 shared memory 用量以及 Nsight Compute 测得的流量。
+
+::: answer
+硬件：NVIDIA B300 SXM6 AC，compute capability 10.3，148 SM；CUDA 13.0 / nvcc 13.0.88，`ARCH=100f`。
+
+`make -B run/m3_tcgen05/04_cta_pair` 两条路径均 `PASS(bad=0)`。
+
+(a) group 1 每 CTA 保存 B 的 $64\times64\times2=8192$ B，group 2 保存 $32\times64\times2=4096$ B，即一半。A 仍为 16384 B。程序打印总 shared/CTA 为 24588 B 和 20492 B（含 barrier/地址等静态对象），减少 4096 B。每 CTA 的输出为 128×64 f32，TMEM 申请 64 列即 32 KiB；两 CTA 总计 64 KiB。
+
+(b) 用 NCU 记录前两个 launch，LSU shared store wavefront 总量由 778 降为 650，减少 128，约 16.45%；load 为 26 和 29，额外 cluster 控制访问会影响这一计数。两个 CTA 的显式矩阵 staging 字节量从 49152 B 减为 40960 B，减少 16.67%，与 store 指标一致。这里的 LSU 指标统计普通 load/store 路径的 shared 访问。
+
+(c) 每个 stage 节省的 B 空间可用于增加缓冲级数或扩大输出 tile，代价是需配合 cluster 同步和两个 SM 的资源。
+
+(d) 依赖 Thread Block Cluster、跨 CTA shared memory 通信及协同驻留。数据中心 GPU 的宽 Tensor Core、HBM/NVLink 和大型训练任务更容易摊薄这种协同成本；2-CTA tcgen05 属于 sm100 系列的 MMA 能力。
+
+实验按 shared 用量和 LSU 计数比较两种实现。原始用量/判测见 `04_cta_pair.log`，NCU 命令与数据见 `ncu-cta.csv`。
+:::
 
 # 完整 GEMM
 
@@ -412,6 +699,15 @@ make run/m4_gemm/01_tiled
 通过判测后，填写性能表中 `4.1 tiled` 一行。结合 0.2 中计算的机器
 平衡点，判断此时性能主要受哪一环节限制。
 
+::: answer
+硬件：NVIDIA B300 SXM6 AC，compute capability 10.3，148 SM；CUDA 13.0 / nvcc 13.0.88，`ARCH=100f`。
+
+`make -B run/m4_gemm/01_tiled`：4096³ `PASS(bad=0)`，41.4 TFLOPS；cuBLAS BF16 为 1767.0 TFLOPS，相对达成率 2.34%。见 `results/b300/01_tiled.log`。
+
+grid 为 32×64，K 分 64 轮。每轮全 CTA 进行 global load、swizzle 地址计算和 shared store，proxy fence 后由线程 0 发四条 MMA；等待本轮消费完成后才覆写 shared，accumulator 一直留在 TMEM。
+
+每个 K tile 的理想 staging 强度为 $2\cdot128\cdot64\cdot64/((128+64)\cdot64\cdot2)=42.67$ FLOP/B，低于机器平衡点 281.25。NCU 实测 DRAM 0.31%、SM throughput 19.07%、active warp 43.80%，主要瓶颈是指令化 staging、地址计算和同步供数。
+:::
 
 ### 4.2 {.prob type=MODIFY file=cuda/m4_gemm/02_tma.cu}
 
@@ -436,6 +732,15 @@ make run/m4_gemm/02_tma
 
 使用 Nsight Compute 辅助分析，观察 4.1 中 SM 时间主要消耗在哪些部分。
 
+::: answer
+硬件：NVIDIA B300 SXM6 AC，compute capability 10.3，148 SM；CUDA 13.0 / nvcc 13.0.88，`ARCH=100f`。
+
+`make -B run/m4_gemm/02_tma`：4096³ `PASS(bad=0)`，568.5 TFLOPS，对 cuBLAS 1765.7 的达成率约 32.20%；见 `02_tma.log`。
+
+A/B 的 tensor map 分别取 dims={K,M}/{K,N}、stride={2K}、box={64,128}/{64,64}；检查 `cuTensorMapEncodeTiled` 返回值。每轮一次 `arrive.expect_tx` 报 24576 B，两条 TMA copy 共用 full barrier；消费端等待 full 后发 MMA，commit 到 empty，下一轮搬运前等待 empty。
+
+TMA 接管普通 load/store、逐元素地址计算和 swizzle，将 global 数据直接搬入 shared，原来的 SM100 MMA descriptor 保持不变。TMA 写和 MMA 读同在 async proxy，同步通过数据到达通知与 tcgen05 的线程排序完成。相对 4.1 提升约 13.73 倍，主要收益来自 staging 指令开销的减少。
+:::
 
 ::: {.capstone title="prob 4.3(FROM-SCRATCH):多级流水" file=cuda/m4_gemm/03_pipeline.cu}
 
@@ -490,6 +795,51 @@ cd m4_gemm && ./sweep_stages.sh
    (c) 如果继续增大 tile 或增加 stage 数，shared memory 与 TMEM
    哪一个会先成为容量限制？结合 3.4(c) 的结果说明。
 
+::: answer
+硬件：NVIDIA B300 SXM6 AC，compute capability 10.3，148 SM；CUDA 13.0 / nvcc 13.0.88，`ARCH=100f`。
+
+每 stage 使用独立 full/empty barrier 与循环缓冲。预热发 min(S,iters) 个 TMA；顺序记录 next，当前 it 待发时阻塞等 empty 并补发，深预取使用非阻塞 try-wait。full 的 parity 为 `(it/S)&1`，复用时等待 empty 的上一代 parity 为 `((next/S)-1)&1`；每轮先保证当前 copy 已发射，再等待 full，最终 drain 后读取 TMEM。
+
+```bash
+make -B run/m4_gemm/03_pipeline
+bash m4_gemm/sweep_stages.sh
+```
+
+所有 8 个形状/级数组合均 `PASS(bad=0)`；另测 S=3、M=128、N=64、K=64/128/192/256（预热未满、刚好填满、首次复用），四项均 PASS，见 `pipeline-short-k.log`。以下 TFLOPS 取 `results/b300/stages.log`：
+
+| 形状 | S=2 | S=3 | S=4 | S=6 |
+|---|---:|---:|---:|---:|
+| 4096³ | 573.3 | 574.5 | 468.5 | 281.9 |
+| 256×4096×16384 | 212.2 | 271.1 | 271.9 | 275.1 |
+
+shared 主体每 stage 为 24 KiB，动态分配另加 1024B 对齐余量；S=2/3/4/6 分别是 50176/74752/99328/148480 B，静态元数据为 48/64/80/112 B，寄存器均为 32/thread。按本机 233472 B shared/SM 计算，shared 容量对应的驻留上界依次为 4/3/2/1 CTA；实际驻留由 shared、寄存器及其他硬件资源共同决定。占用 API 对本 tcgen05 kernel 返回 1。NCU 的 active-warp 实测依次为 21.03%、16.82%、12.00%、6.23%，呈现 shared 用量增加、活跃 warp 比例下降的趋势（`ncu-stage-*.csv`）。
+
+大 grid 有 2048 CTA，stage 加深带来的 shared 占用会削弱块间并发；小 grid 仅 128 CTA，小于 148 SM，已有并发不足，长 K 的等待更依赖块内预取，因此 S=2→3 的收益显著，继续加深逐渐饱和。
+
+S=3 的稳态示意（箭头表示先等该 stage 的 empty，再复用；非等比例时间轴）：
+
+```text
+时间 →      t0           t1           t2           t3
+stage 0   MMA(k0) ──→ TMA(k3) ────────────────→ MMA(k3)
+stage 1   TMA(k1) ──→ MMA(k1) ──→ TMA(k4)
+stage 2   TMA(k2) ────────────→ MMA(k2) ──→ TMA(k5)
+```
+
+梯子表（4096³，同一 B300；naive 是 assignment01 的原 kernel，仅换同形状计时和 cuBLAS reference）：
+
+| 实现 | TFLOPS | 对 cuBLAS BF16 达成率 | 主要剩余开销 |
+|---|---:|---:|---|
+| naive FP32 | 6.4 | 0.36% | 标量 FMA 与重复 global 访问 |
+| tiled | 41.4 | 2.34% | 指令化 staging、swizzle、等待 |
+| TMA | 568.5 | 32.17% | 单缓冲搬运与计算串行 |
+| pipeline S=3 | 576.3 | 32.61% | 固定窄 tile 的供数/发射/同步与驻留限制 |
+| cuBLAS BF16 | 1767.0 | 100% | 库内部优化基线 |
+
+naive 的 FP32 cuBLAS 对照为 65.7 TFLOPS。梯子表统一以 BF16 cuBLAS 为分母比较性能量级，naive 使用 FP32，其余实现使用 BF16 输入。4.3 相对 4.2 小幅提高，剩余开销集中于固定窄 tile 的供数、发射、同步与驻留。
+
+固定输出 tile 时，S 增大线性增加 shared，TMEM 始终为 128×64×4=32768 B，因此先达到 shared 容量限制。加大 M/N 会同时增加 TMEM 用量；2-CTA 通过节省 B shared 为更多 stage 留出空间，同时需要考虑 cluster 同步和 TMEM 容量。
+:::
+
 :::
 
 
@@ -505,6 +855,11 @@ cd m4_gemm && ./sweep_stages.sh
 (c) 自由优化当前 kernel，提高相对 cuBLAS 的性能，并记录每一步优化
 解决了什么问题。
 
+::: answer
+硬件：NVIDIA B300 SXM6 AC，compute capability 10.3，148 SM；CUDA 13.0 / nvcc 13.0.88，`ARCH=100f`。
+
+本次完成必做主线，未选择 4.4 的额外 GEMM 优化方向。5.4 另外完成了针对融合 kernel 访存的优化与复测。
+:::
 
 ### 4.5 {.prob type=EXPERIMENT file=cuda/m4_gemm/05_thin_gemm.cu}
 
@@ -562,6 +917,85 @@ kernel 的原因。
 `in_proj_qkvgfab` 对应 KDA 的输入投影。完成团队题 C1/C2 的同学可以
 使用这一行的实验结果作为后续分析的参考。
 
+::: answer
+硬件：NVIDIA B300 SXM6 AC，compute capability 10.3，148 SM；CUDA 13.0 / nvcc 13.0.88，`ARCH=100f`。
+
+运行 `./bin/m4_gemm/05_thin_gemm 2250 8000`；七个投影、九个 M 的完整原始输出见 `results/b300/thin.log`。AI 用题设 BF16 输入/输出字节口径，roof 为 $\min(2250,8AI)$ TFLOPS；compute 和 memory 达成率分别为实测/2250 与实测/(8AI)。
+
+| 投影 | M | AI | 理论 roof TFLOPS | 实测 TFLOPS | compute roof 达成率 | memory roof 达成率 |
+|---|---:|---:|---:|---:|---:|---:|
+| f_b_proj | 1 | 0.99 | 7.93 | 0.1 | 0.0% | 1.3% |
+| f_b_proj | 8 | 7.49 | 59.94 | 0.8 | 0.0% | 1.3% |
+| f_b_proj | 16 | 14.09 | 112.73 | 1.6 | 0.1% | 1.4% |
+| f_b_proj | 64 | 41.51 | 332.11 | 6.6 | 0.3% | 2.0% |
+| f_b_proj | 256 | 80.84 | 646.74 | 25.9 | 1.1% | 4.0% |
+| f_b_proj | 1024 | 105.93 | 847.45 | 100.8 | 4.5% | 11.9% |
+| f_b_proj | 4096 | 114.84 | 918.73 | 325.0 | 14.4% | 35.4% |
+| f_b_proj | 16384 | 117.31 | 938.46 | 572.2 | 25.4% | 61.0% |
+| f_b_proj | 65536 | 117.94 | 943.53 | 694.1 | 30.8% | 73.6% |
+| q_b_proj | 1 | 1.00 | 7.99 | 0.8 | 0.0% | 9.5% |
+| q_b_proj | 8 | 7.93 | 63.45 | 9.6 | 0.4% | 15.1% |
+| q_b_proj | 16 | 15.73 | 125.82 | 31.5 | 1.4% | 25.0% |
+| q_b_proj | 64 | 59.84 | 478.75 | 123.9 | 5.5% | 25.9% |
+| q_b_proj | 256 | 200.35 | 1602.78 | 470.6 | 20.9% | 29.4% |
+| q_b_proj | 1024 | 485.05 | 2250.00 | 1212.9 | 53.9% | 31.3% |
+| q_b_proj | 4096 | 752.33 | 2250.00 | 1743.1 | 77.5% | 29.0% |
+| q_b_proj | 16384 | 872.52 | 2250.00 | 1904.6 | 84.6% | 27.3% |
+| q_b_proj | 65536 | 908.82 | 2250.00 | 2026.7 | 90.1% | 27.9% |
+| o_proj | 1 | 1.00 | 7.99 | 4.6 | 0.2% | 58.2% |
+| o_proj | 8 | 7.95 | 63.60 | 48.4 | 2.2% | 76.1% |
+| o_proj | 16 | 15.80 | 126.40 | 94.5 | 4.2% | 74.8% |
+| o_proj | 64 | 60.92 | 487.34 | 313.5 | 13.9% | 64.3% |
+| o_proj | 256 | 212.91 | 1703.29 | 930.1 | 41.3% | 54.6% |
+| o_proj | 1024 | 565.89 | 2250.00 | 1366.0 | 60.7% | 30.2% |
+| o_proj | 4096 | 966.47 | 2250.00 | 1906.5 | 84.7% | 24.7% |
+| o_proj | 16384 | 1174.28 | 2250.00 | 2005.2 | 89.1% | 21.3% |
+| o_proj | 65536 | 1240.99 | 2250.00 | 2090.7 | 92.9% | 21.1% |
+| fused_qkv_a_proj | 1 | 1.00 | 8.00 | 3.9 | 0.2% | 48.5% |
+| fused_qkv_a_proj | 8 | 7.96 | 63.69 | 36.8 | 1.6% | 57.9% |
+| fused_qkv_a_proj | 16 | 15.84 | 126.76 | 72.4 | 3.2% | 57.2% |
+| fused_qkv_a_proj | 64 | 61.58 | 492.67 | 212.7 | 9.5% | 43.2% |
+| fused_qkv_a_proj | 256 | 221.28 | 1770.21 | 729.5 | 32.4% | 41.2% |
+| fused_qkv_a_proj | 1024 | 629.11 | 2250.00 | 1504.5 | 66.9% | 29.9% |
+| fused_qkv_a_proj | 4096 | 1166.68 | 2250.00 | 1754.7 | 78.0% | 18.8% |
+| fused_qkv_a_proj | 16384 | 1483.62 | 2250.00 | 1826.3 | 81.2% | 15.4% |
+| fused_qkv_a_proj | 65536 | 1591.72 | 2250.00 | 1737.2 | 77.2% | 13.6% |
+| in_proj_qkvgfab | 1 | 1.00 | 8.00 | 5.3 | 0.2% | 66.8% |
+| in_proj_qkvgfab | 8 | 7.98 | 63.85 | 45.8 | 2.0% | 71.8% |
+| in_proj_qkvgfab | 16 | 15.92 | 127.39 | 86.6 | 3.9% | 68.0% |
+| in_proj_qkvgfab | 64 | 62.80 | 502.40 | 383.1 | 17.0% | 76.3% |
+| in_proj_qkvgfab | 256 | 237.82 | 1902.59 | 1007.8 | 44.8% | 53.0% |
+| in_proj_qkvgfab | 1024 | 784.25 | 2250.00 | 1408.9 | 62.6% | 22.5% |
+| in_proj_qkvgfab | 4096 | 1842.70 | 2250.00 | 1768.0 | 78.6% | 12.0% |
+| in_proj_qkvgfab | 16384 | 2781.04 | 2250.00 | 1759.8 | 78.2% | 7.9% |
+| in_proj_qkvgfab | 65536 | 3186.74 | 2250.00 | 1684.2 | 74.9% | 6.6% |
+| dense_down_proj | 1 | 1.00 | 8.00 | 4.8 | 0.2% | 60.4% |
+| dense_down_proj | 8 | 7.98 | 63.87 | 41.3 | 1.8% | 64.7% |
+| dense_down_proj | 16 | 15.93 | 127.47 | 81.2 | 3.6% | 63.7% |
+| dense_down_proj | 64 | 62.96 | 503.69 | 280.2 | 12.5% | 55.6% |
+| dense_down_proj | 256 | 240.15 | 1921.17 | 1027.0 | 45.6% | 53.5% |
+| dense_down_proj | 1024 | 810.08 | 2250.00 | 1208.9 | 53.7% | 18.7% |
+| dense_down_proj | 4096 | 1991.95 | 2250.00 | 1810.4 | 80.5% | 11.4% |
+| dense_down_proj | 16384 | 3135.63 | 2250.00 | 1667.5 | 74.1% | 6.6% |
+| dense_down_proj | 65536 | 3661.14 | 2250.00 | 1631.4 | 72.5% | 5.6% |
+| dense_gate_up_proj | 1 | 1.00 | 8.00 | 6.1 | 0.3% | 76.1% |
+| dense_gate_up_proj | 8 | 7.99 | 63.90 | 50.8 | 2.3% | 79.5% |
+| dense_gate_up_proj | 16 | 15.95 | 127.59 | 99.4 | 4.4% | 77.9% |
+| dense_gate_up_proj | 64 | 63.20 | 505.57 | 384.4 | 17.1% | 76.0% |
+| dense_gate_up_proj | 256 | 243.61 | 1948.87 | 1219.8 | 54.2% | 62.6% |
+| dense_gate_up_proj | 1024 | 850.88 | 2250.00 | 1781.8 | 79.2% | 26.2% |
+| dense_gate_up_proj | 4096 | 2258.18 | 2250.00 | 1725.5 | 76.7% | 9.6% |
+| dense_gate_up_proj | 16384 | 3850.16 | 2250.00 | 1656.0 | 73.6% | 5.4% |
+| dense_gate_up_proj | 65536 | 4673.92 | 2250.00 | 1679.8 | 74.7% | 4.5% |
+
+(a) $M\le16$ 时约 0.1–99.4 TFLOPS；M=64/256 进入过渡。除 K=128 的 f_b_proj 外，多数投影在 $M\approx1024$–$4096$ 接近平台，$M\ge4096$ 的 compute 达成率约 72.5%–92.9%，具体数值随形状和库 dispatch 波动。
+
+(b) `dense_gate_up_proj` 在 M=1/8/16 的 memory roof 达成率为 76.1%/79.5%/77.9%，compute 为 0.3%/2.3%/4.4%；`in_proj_qkvgfab` 的 memory roof 达成率约为 67%–72%，属于带宽敏感区。这里的有效带宽按题设输入/输出字节数除以执行时间计算，缓存复用会影响该数值。
+
+(c) f_b_proj 的 K=128，$M\to\infty$ 时 AI 趋近 $NK/(N+K)=118.15$，低于机器平衡点 281.25。小 M 时约 4 $\mu$s 的启动/调度成本占主导，MMA 初始化与少量 K 迭代的开销占比较高，因此两个 roof 达成率都低。M=65536 时 memory 达成率升至 73.6%，表现为带宽敏感。
+
+(d) 小 M 的输出工作量较少，Tensor Core 路径的 staging、初始化和同步开销占比较高。skinny kernel 直接用 CUDA Core FMA 读取权重，可压缩 setup 开销，这解释了题设在 $M\le16$ 时采用该 dispatch 的动机。
+:::
 
 ::: lookback
 
@@ -615,6 +1049,21 @@ uv run python kernels/quant_outlier.py
 (c) 改用 1×128 的 per-block scale 后，包含 outlier 的 block 与不包含
 outlier 的 block 分别有什么变化？
 
+::: answer
+硬件：本地 AMD Ryzen AI 9 HX 370（CPU 实验，compute capability 不适用）；nvcc 12.9.86。
+
+本地 CPU PyTorch 2.14.0+cpu，命令 `/tmp/assignment02-venv/bin/python kernels/quant_outlier.py`，原始输出 `results/local/outlier.log`。
+
+| $x\approx$ | 0.5 | 0.1 | 0.01 | 0.005 | 3000 |
+|---|---:|---:|---:|---:|---:|
+| 相对误差 | 0.04611 | 0.04634 | 0.3085 | 1.000 | 0 |
+
+(a) 去掉 outlier 后，最接近 0.5 的采样点相对误差降为 `0.000308632181`，对应改善 `149.40993` 倍。
+
+(b) E4M3 最小正 subnormal 为 $2^{-9}$，RN-even 舍入到零的边界为 $|x|\le scale\,2^{-10}$。本次 scale=3000/448=6.69642857，理论边界 0.00653948103；实际采样中被归零的最大绝对值为 0.00648248196。
+
+(c) 128 元素分块后，普通 block 的平均相对误差从 0.0379851 降到 0.0220541，归零数从 79 降到 0；outlier 所在最后一个 block 的普通元素平均误差为 0.0257169。该 block 保留较大的 scale，其他 block 使用各自的局部 scale；代码按实际元素数处理尾块。
+:::
 
 ### 5.2 {.prob type=DERIVE file=kernels/block_scale_sim.py}
 
@@ -654,6 +1103,25 @@ $N \times \lceil K/SV \rceil$，每个 scale 负责连续的 16 或 32 个 K
 共享，但每个组仍覆盖一段 K；NVFP4 则每 16 个 K 元素一组。
 结合 5.1(c) 的误差，说明粒度 16 相对粒度 128 有什么优势，又增加了
 多少 scale metadata 与供数复杂度。
+
+::: answer
+硬件：本地 AMD Ryzen AI 9 HX 370（CPU 实验，compute capability 不适用）；nvcc 12.9.86。
+
+本地运行 `/tmp/assignment02-venv/bin/python -m pytest tests/test_block_scale.py -q`：`3 passed`，含“错误的一次乘回”反例测试；见 `results/local/pytest.log`。CPU PyTorch 2.14.0+cpu，运算使用 fp64。
+
+(a) A、B 分别按行存放，B 的行是输出列：
+
+$$C_{mn}=s^A_m s^B_n\sum_k(A_{mk}/s^A_m)(B_{nk}/s^B_n),$$
+$$C_{mn}=\sum_j s^A_{mj}s^B_{nj}\sum_{k\in j}(A_{mk}/s^A_{mj})(B_{nk}/s^B_{nj}).$$
+
+第一式的 scale 乘积在整个 k 归约中保持常数，可在归约后恢复；第二式的 scale 随 K block 改变，需要逐段恢复后相加。分段会改变浮点加法结合顺序，判测采用 fp64 容差比较结果。
+
+(b) K 是 MMA 内积归约维，一条指令连续消费一段 K；scale 与该段绑定，使硬件可以在正确的 partial sum 上应用乘积。A 的元数据为 $M\times\lceil K/SV\rceil$，B 为 $N\times\lceil K/SV\rceil$，既与 tile 迭代对齐，也允许连续加载 data 和相应 scale。
+
+(c) 16 元素组将 outlier 的影响限制在更小范围。每 scale 为 1 byte 时，元数据数量是 128 元素组的 8 倍，即 1/16 对 1/128 B/elem。NVFP4 的 1-byte SF 相对 0.5 B/elem 数据占 12.5%，还需 swizzled SF 布局与指令的 data/scale 同步供数。DeepSeek-V3 的 128×128 weight block 同时沿输出通道方向共享 scale，其总 metadata 比例需要结合两个方向的粒度计算。
+
+出处：[CUTLASS Blackwell GEMM](https://docs.nvidia.com/cutlass/latest/media/docs/cpp/blackwell_functionality.html)。
+:::
 
 ### 5.3 {.prob type=FROM-SCRATCH file=cuda/m5_lowprec/}
 
@@ -717,6 +1185,28 @@ make run/m5_lowprec/test_fp4_gemm
 使用 tcgen05 `kind::mxf4nvf4` 直接消费自己生成的 NVFP4 数据，
 SF 通过 TMEM 提供，并与 cuBLASLt 的结果对拍。
 
+::: answer
+硬件：NVIDIA B300 SXM6 AC，compute capability 10.3，148 SM；CUDA 13.0 / nvcc 13.0.88，`ARCH=100f`。
+
+(a) `e2m1_encode` 保留符号（含负零），在幅值中点处选择编码低位为偶数的一侧，并将大值饱和到 6：0.25→0、0.75→1、1.25→1、1.75→2、2.5→2、3.5→4、5→4。`make -B run/m5_lowprec/03a_encode_check`：`PASS: 202864 values match hardware`。
+
+(b) 一个线程负责连续 16 个 bf16，用两次 uint4 读取，计算 amax→E4M3 SF→反量化 SF 的倒数，然后硬件 `__nv_fp4x2_e2m1` 编码，八个 byte 合并为 uint64 写回。SF 使用题面 swizzled offset，padding 由调用者清零。
+
+```bash
+make -B run/m5_lowprec/03b_nvfp4_quant
+make -B run/m5_lowprec/test_fp4_gemm
+```
+
+quant 的 128×1024、200×4096、4096×7168 都 `PASS(bad=0)`，同时检查 data/SF bytes。cuBLASLt 三个形状均 PASS，maxrel 分别为 0.003880、0.003891、0.003880，说明打包与 scale 布局可直接消费。
+
+(c) probe 与 quant 使用相同 grid、block、两次 uint4 输入和 8B data+1B SF 输出。探针对所有输入 word 做 XOR 后写回，使读入数据参与输出计算。有效字节为 $2+0.5+1/16=2.5625$ B/elem。
+
+题面原始主程序在 4096×7168 上测得 probe=7301 GB/s、quant=5425 GB/s，比值 0.743；同一进程追加对照（`experiments/bandwidth.cu`）为 7323.6/5590.5 GB/s，比值 0.7634。以上性能数据采用独立计时，profiler 数据用于归因。
+
+大形状 NCU 的 quant 为 SM throughput 51.56%、DRAM 28.99%，有效带宽达到同形探针约 76%。结合这组指标，剩余开销包括 amax、转换、倒数、packing 与指令发射。其它形状见 `bandwidth.log`；profiler 记录见 `ncu-quant-large.csv`。
+
+(d) 未选做手写 `tcgen05.kind::mxf4nvf4`，已完成要求的 cuBLASLt 消费验证。
+:::
 
 ::: lookback
 
@@ -790,6 +1280,41 @@ make run/m5_lowprec/04_fused_rms_nvfp4
 
 Optional：根据分析得到的主要瓶颈进行一次针对性优化，重新测试并更新表格。
 
+::: answer
+硬件：NVIDIA B300 SXM6 AC，compute capability 10.3，148 SM；CUDA 13.0 / nvcc 13.0.88，`ARCH=100f`。
+
+实现 `rms_quant<B>`：CTA 内归约 sumsq，输入以 uint4 向量读入并保留在寄存器中，计算 rnorm 后直接将归一化结果量化成 FP4 并写回。对 K=4096/7168/8192 按实际组长度处理尾部。
+
+```bash
+make -B run/m5_lowprec/04_fused_rms_nvfp4
+```
+
+每个形状分别扫描融合 `B=128/256/512`，基线 RMS `B=128/256/512` 与 `grid=M/2SM/4SM/8SM` 的组合，选定配置后独立计时。quant 沿用已验证的 uint4/128-thread grid-stride 实现。完整候选时间与所选配置保存在 `results/b300/fused-tuned.log`。
+
+| M×K | 两步 $\mu$s | 融合 $\mu$s | 加速比 | 融合/同形 ceiling 带宽 | data/SF 不同 byte 数 |
+|---|---:|---:|---:|---:|---:|
+| 1×4096 | 7.18 | 4.11 | 1.75× | 76.0% | 0/0 |
+| 16×4096 | 8.20 | 4.11 | 2.00× | 74.8% | 0/0 |
+| 256×4096 | 8.21 | 4.11 | 2.00× | 99.9% | 0/0 |
+| 1024×4096 | 10.25 | 6.16 | 1.67× | 67.0% | 0/0 |
+| 4096×4096 | 20.53 | 14.42 | 1.42× | 56.9% | 0/0 |
+| 16384×4096 | 79.44 | 59.47 | 1.34× | 52.8% | 6/1 |
+| 4096×7168 | 38.91 | 20.59 | 1.89× | 49.9% | 3/0 |
+| 16384×7168 | 134.25 | 88.83 | 1.51× | 58.3% | 5/1 |
+| 4096×8192 | 41.83 | 22.58 | 1.85× | 54.6% | 6/2 |
+| 16384×8192 | 149.17 | 92.29 | 1.62× | 63.6% | 2/1 |
+
+十个形状均 PASS。检查覆盖 data 和 SF（含 padding），均按题面的 1e-4 比例容差处理。少量 byte 差异来自 sumsq 加法分组使中点附近的值翻转。两步基线在中间写 bf16 时额外舍入，融合路径直接量化归一化结果；计时比较的是这两条精度路径。
+
+比例用 `bandwidth.log` 的同形 probe 时间除以本表融合时间，两者统一按 2.5625 B/elem 计算有效带宽。该比例衡量融合实现相对 quant 访存探针的速度；融合还包含权重读取与归约。
+
+小 M 时 kernel 启动成本主导，M=1 的 CTA 数量远少于 148 SM，融合通过减少一次启动获得主要收益。中等 M 的 CTA 数量增加，归约、SF/FP4 转换的发射与同步成本开始显现。大 M 的开销包括寄存器占用、权重读取、归约与转换；NCU 对 4096×7168 的融合实测为 52 registers/thread、active warp 43.31%、SM throughput 52.17%、DRAM 18.93%。
+
+2.56× 的理想估算按两步与融合的字节量之比计算，并假定两者以相同带宽执行。实测还包含启动、权重读取、转换和归约开销，最终加速比为 1.34–2.00×。
+
+针对性优化：初稿逐标量读取并在归约后重读 x，大 M 加速比为 0.53–0.64×；改为向量装载、寄存器复用，并分别调优融合与基线后，得到上表结果。原始首轮见 `04_fused_rms_nvfp4.log`，完整候选配置与最终计时见 `fused-tuned.log`。
+:::
+
 :::
 
 
@@ -808,6 +1333,15 @@ NVFP4 GEMM。
 
 每问用两到三句话回答。
 
+::: answer
+硬件：NVIDIA B300 SXM6 AC，compute capability 10.3，148 SM；CUDA 13.0 / nvcc 13.0.88，`ARCH=100f`。
+
+(a) W4A16/Marlin 是权重存储量化，int4 权重解码后仍执行 fp16 计算；NVFP4 是计算量化，原生 FP4 Tensor Core 直接消费打包 FP4 数据与 block scales。
+
+(b) 两者都减少权重容量和读取流量；Marlin 的收益需扣除解码成本，Tensor Core 精度仍为 fp16。NVFP4 还压缩 activation，并可使用更高的 FP4 计算峰值，但需要量化、scale 元数据及供数布局。
+
+(c) 小 batch decode 的权重搬运占比高，W4A16 通过减少权重字节数获得直接收益，同时保持 activation 为 fp16。NVFP4 同样节省带宽；随着计算规模增大，量化与启动开销得到摊薄，更高的 FP4 计算吞吐逐步发挥作用。
+:::
 
 # TileLang 对照
 
@@ -848,6 +1382,31 @@ NVFP4 GEMM。
 <!-- 编者注：TileLang 对 sm_100 codegen 的支持范围需在发布前根据
 README 中固定的版本重新核实。 -->
 
+::: answer
+硬件：NVIDIA B300 SXM6 AC，compute capability 10.3，148 SM；CUDA 13.0 / nvcc 13.0.88，`ARCH=100f`。
+
+固定 TileLang 0.1.13；使用 `experiments/tilelang_lower.py` 的 T.gemm，tile=128×128×64、threads=128、stages=3，分别 lower 到 sm_90a/sm_100a，再显式调用 nvcc 生成对应 cubin。两种架构均完成编译验证。
+
+```bash
+.venv/bin/python experiments/tilelang_lower.py
+```
+
+输入 IR、device/host lowering、CUDA 源码和编译命令/返回值在 `results/tilelang/`，运行记录在 `results/b300/tilelang.log`。
+
+| 项目 | sm_90a | sm_100a |
+|---|---|---|
+| 此配置实际选择的指令 | `tl::wgmma_ss<...,64,128,16,...>` → WGMMA | `tl::mma_sync<...,16,8,16,...>` → MMA.SYNC |
+| MMA descriptor | device 端 `initialize_wgmma_descriptor` 构造 A/B 的 64-bit descriptor | warp fragment 路径无 WGMMA/tcgen05 MMA descriptor |
+| TMA tensor map | host lowering 写入 encode 参数，launch 前运行库编码，kernel 参数为 `a_desc/b_desc` | 同左 |
+| shared swizzle | 编译期 LayoutInference / LowerTileOp 确定，落实为描述符参数、shared 索引和 TMA 布局 | 同样由布局推断确定，落实为 TMA shared 布局及 fragment load 地址 |
+| 谁搬到 shared | `tl::tma_load` 和自动生成的 mbarrier/pipeline | 同为 `tl::tma_load`，随后 warp 级 fragment 装载 |
+
+(a) 编译器完成指令选择、fragment 分配、shared 布局、TMA map 参数与同步插入。在 TileLang 0.1.13 的本次配置中，sm_90a 选择 WGMMA，sm_100a 选择 MMA.SYNC，两者均由 TMA 搬运数据。
+
+(b) 程序员选择 tile 尺寸、threads、num_stages、输入和累加 dtype，并通过实验验证正确性、调整性能。与手写 M2–M4 相比，DSL 承担布局推断、指令生成和同步插入，程序员侧重计算划分与参数调优。
+
+已在 assignment01 7.5 的作答表中补充“Tensor Core 指令选择与供数布局”一行。此版本 target 使用 dict，并在 `with Target(...)` 上下文内调用 lower；旧 CLI 风格 target 字符串会报错。
+:::
 
 # 团队选做（推荐） {-}
 

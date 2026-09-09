@@ -1,0 +1,6 @@
+nvcc -O2 -std=c++17 -I. --expt-relaxed-constexpr -gencode arch=compute_100f,code=sm_100f -o bin/m0_env/01_first_mma m0_env/01_first_mma.cu
+nvcc -O2 -std=c++17 -I. --expt-relaxed-constexpr -gencode arch=compute_100f,code=sm_100f -o bin/m3_tcgen05/02_single_tile m3_tcgen05/02_single_tile.cu
+nvcc -O2 -std=c++17 -I. --expt-relaxed-constexpr -gencode arch=compute_100f,code=sm_100f -o bin/m3_tcgen05/03_bug_mbarrier m3_tcgen05/03_bug_mbarrier.cu
+nvcc -O2 -std=c++17 -I. --expt-relaxed-constexpr -gencode arch=compute_100f,code=sm_100f -lcublas -lcuda -o bin/m4_gemm/01_tiled m4_gemm/01_tiled.cu
+nvcc -O2 -std=c++17 -I. --expt-relaxed-constexpr -gencode arch=compute_100f,code=sm_100f -lcublas -lcuda -o bin/m4_gemm/02_tma m4_gemm/02_tma.cu
+nvcc -O2 -std=c++17 -I. --expt-relaxed-constexpr -gencode arch=compute_100f,code=sm_100f -lcublas -lcuda -o bin/m4_gemm/03_pipeline m4_gemm/03_pipeline.cu

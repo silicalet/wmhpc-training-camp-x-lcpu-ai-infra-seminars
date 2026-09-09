@@ -1,0 +1,3 @@
+make: Entering directory '/home/user0/workspace/wmhpc-training-camp-x-lcpu-ai-infra-seminars/assignment02/cuda'
+nvcc -O2 -std=c++17 -I. --expt-relaxed-constexpr -gencode arch=compute_100f,code=sm_100f -o bin/m5_lowprec/04_fused_rms_nvfp4 m5_lowprec/04_fused_rms_nvfp4.cu
+make: Leaving directory '/home/user0/workspace/wmhpc-training-camp-x-lcpu-ai-infra-seminars/assignment02/cuda'

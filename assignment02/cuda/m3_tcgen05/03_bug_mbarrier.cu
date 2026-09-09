@@ -114,7 +114,7 @@ __global__ void tcgen05_tile(const __nv_bfloat16* gA, const __nv_bfloat16* gB,
                 ".shared::cluster.b64 [%0];" ::"r"(mbar_u32)
                 : "memory");
         }
-        mbar_wait(mbar_u32, 0);
+        mbar_wait(mbar_u32, round & 1);  // 等待本轮 phase，完成后硬件自动翻转。
         asm volatile("tcgen05.fence::after_thread_sync;");
         for (int c = 0; c < N; c += 8) {
             uint32_t src = taddr + ((uint32_t)(warp * 32) << 16) + c;
@@ -129,6 +129,7 @@ __global__ void tcgen05_tile(const __nv_bfloat16* gA, const __nv_bfloat16* gB,
 #pragma unroll
             for (int i = 0; i < 8; i++) acc[c / 8][i] += r[i];
         }
+        asm volatile("tcgen05.fence::before_thread_sync;" ::: "memory");
         __syncthreads();  // 所有 warp 读完本轮才允许发下一轮
     }
     {

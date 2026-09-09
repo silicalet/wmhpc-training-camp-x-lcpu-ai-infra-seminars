@@ -1,0 +1,2 @@
+nvcc -O2 -std=c++17 -I. --expt-relaxed-constexpr -gencode arch=compute_100f,code=sm_100f -o bin/m1_sm80/02_bug_fragment m1_sm80/02_bug_fragment.cu
+nvcc -O2 -std=c++17 -I. --expt-relaxed-constexpr -gencode arch=compute_100f,code=sm_100f -o bin/m3_tcgen05/03_bug_mbarrier m3_tcgen05/03_bug_mbarrier.cu

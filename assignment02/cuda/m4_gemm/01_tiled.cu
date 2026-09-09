@@ -64,31 +64,77 @@ __global__ void gemm_tiled(const __nv_bfloat16* gA, const __nv_bfloat16* gB,
     uint8_t* smem =
         (uint8_t*)(((uintptr_t)smem_raw + 1023) & ~(uintptr_t)1023);
 
-    // TODO:在你 3.2 的实现基础上扩展。结构:
-    // (1) mbarrier 初始化 + TMEM 分配(与 3.2 相同,整段沿用)
-    // (2) 本 block 的输出 tile:tileM = blockIdx.x*BM, tileN = blockIdx.y*BN
-    // (3) K 维循环 it = 0 .. K/BK-1,每轮:
-    //     (a) 全体线程把 A 的 (tileM, it*BK) 块、B 的 (tileN, it*BK) 块
-    //         按 swz128 布局 st.shared 进 smem(即 3.2 的 staging,行列
-    //         起点换成 tile 偏移)
-    //     (b) fence.proxy.async + __syncthreads
-    //     (c) 单线程发射 4 条 k16 的 tcgen05.mma。注意累加位:整个 K
-    //         循环里只有第一条 mma 不累加(enable-input-d = 0),其余
-    //         全部累加到同一块 TMEM——3.2 里"kk>0 才累加"的条件在这里
-    //         要连 it 一起考虑
-    //     (d) commit 到 mbarrier,等 mma 消费完成后才能进入下一轮覆写
-    //         smem。想清楚 parity 怎么随 it 翻转;这一步等错或漏等,
-    //         小 K 可能侥幸通过,大 K 会读到被覆写的数据
-    // (4) epilogue 与 3.2 相同,写回 gD 的 (tileM, tileN) 块(行跨度 N)
-    // (5) dealloc
-    (void)gA; (void)gB; (void)gD; (void)M; (void)N; (void)K; (void)smem;
+    __shared__ __align__(8) uint64_t bar;
+    __shared__ uint32_t addr;
+    int t = threadIdx.x, warp = t >> 5;
+    uint32_t mb = __cvta_generic_to_shared(&bar);
+    if (t == 0) {
+        asm volatile("mbarrier.init.shared::cta.b64 [%0], 1;" :: "r"(mb) : "memory");
+        asm volatile("fence.mbarrier_init.release.cluster;" ::: "memory");
+    }
+    if (warp == 0) {
+        uint32_t p = __cvta_generic_to_shared(&addr);
+        asm volatile("tcgen05.alloc.cta_group::1.sync.aligned.shared::cta.b32 [%0], 64;" :: "r"(p) : "memory");
+        asm volatile("tcgen05.relinquish_alloc_permit.cta_group::1.sync.aligned;");
+    }
+    __syncthreads();
+    uint32_t ta = addr;
+    auto *sa = smem;
+    auto *sb = smem + 128 * 64 * 2;
+    int tm = blockIdx.x * 128, tn = blockIdx.y * 64;
+    for (int it = 0; it < K / 64; it++) {
+        for (int i = t; i < 128 * 64; i += 128) {
+            int r = i / 64, k = i % 64;
+            *reinterpret_cast<__nv_bfloat16 *>(sa + swz128(r, k * 2)) = gA[(size_t(tm) + r) * K + it * 64 + k];
+        }
+        for (int i = t; i < 64 * 64; i += 128) {
+            int r = i / 64, k = i % 64;
+            *reinterpret_cast<__nv_bfloat16 *>(sb + swz128(r, k * 2)) = gB[(size_t(tn) + r) * K + it * 64 + k];
+        }
+#ifndef OMIT_PROXY_FENCE
+        asm volatile("fence.proxy.async.shared::cta;" ::: "memory");
+#endif
+        __syncthreads();
+        if (t == 0) {
+        asm volatile("tcgen05.fence::after_thread_sync;" ::: "memory");
+        for (int k = 0; k < 64; k += 16) {
+            uint64_t da = make_desc_sm100(__cvta_generic_to_shared(sa) + k * 2, 0, 1024, 2);
+            uint64_t db = make_desc_sm100(__cvta_generic_to_shared(sb) + k * 2, 0, 1024, 2);
+            uint32_t id = (1u << 4) | (1u << 7) | (1u << 10) | (8u << 17) | (8u << 24);
+            asm volatile("{ .reg .pred p; setp.ne.b32 p, %4, 0; "
+                "tcgen05.mma.cta_group::1.kind::f16 [%0], %1, %2, %3, p; }"
+                :: "r"(ta), "l"(da), "l"(db), "r"(id), "r"(int(it != 0 || k != 0)) : "memory");
+        }
+        asm volatile("tcgen05.commit.cta_group::1.mbarrier::arrive::one.shared::cluster.b64 [%0];"
+            :: "r"(mb) : "memory");
+        }
+        mbar_wait(mb, it & 1);
+        __syncthreads();  // 所有线程看到消费完成后才允许覆盖 shared memory。
+    }
+    asm volatile("tcgen05.fence::after_thread_sync;" ::: "memory");
+    for (int c = 0; c < 64; c += 8) {
+        float v[8];
+        uint32_t p = ta + ((warp * 32) << 16) + c;
+        asm volatile("tcgen05.ld.sync.aligned.32x32b.x8.b32 {%0,%1,%2,%3,%4,%5,%6,%7}, [%8];"
+            : "=f"(v[0]), "=f"(v[1]), "=f"(v[2]), "=f"(v[3]),
+              "=f"(v[4]), "=f"(v[5]), "=f"(v[6]), "=f"(v[7]) : "r"(p) : "memory");
+        asm volatile("tcgen05.wait::ld.sync.aligned;" ::: "memory");
+        #pragma unroll
+        for (int i = 0; i < 8; i++) gD[(size_t(tm) + t) * N + tn + c + i] = v[i];
+    }
+    asm volatile("tcgen05.fence::before_thread_sync;" ::: "memory");
+    __syncthreads();
+    if (warp == 0) {
+        asm volatile("tcgen05.dealloc.cta_group::1.sync.aligned.b32 %0, 64;" :: "r"(ta) : "memory");
+    }
+
 }
 
 int main(int argc, char** argv) {
     int M = argc > 3 ? atoi(argv[1]) : 4096;
     int N = argc > 3 ? atoi(argv[2]) : 4096;
     int K = argc > 3 ? atoi(argv[3]) : 4096;
-    if (M % BM || N % BN || K % BK) {
+    if (M <= 0 || N <= 0 || K <= 0 || M % BM || N % BN || K % BK) {
         printf("形状需按 %dx%dx%d 对齐\n", BM, BN, BK);
         return 1;
     }

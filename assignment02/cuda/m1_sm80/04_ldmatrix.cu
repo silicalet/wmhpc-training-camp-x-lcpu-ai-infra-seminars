@@ -23,22 +23,41 @@
 // 16 byte 连续,B 的 fragment 需要 k 方向相邻的字节成对进 b16——
 // 想清楚哪种布局能满足它。
 //
-// TODO: 实现两个装载函数。
+// 手工装载与 ldmatrix 两种路径。
 __device__ void load_manual(const uint8_t* sA, const uint8_t* sBk,
                             const uint8_t* sBn, unsigned (&a)[4],
                             unsigned (&b)[2]) {
-    (void)sA; (void)sBk; (void)sBn; (void)a; (void)b;
+    int t = threadIdx.x & 31;
+    auto pa = reinterpret_cast<uint8_t *>(a);
+    auto pb = reinterpret_cast<uint8_t *>(b);
+    #pragma unroll
+    for (int i = 0; i < 16; i++) {
+        int r = (t >> 2) + 8 * ((i >> 2) & 1);
+        int k = 4 * (t & 3) + 16 * (i >> 3) + (i & 3);
+        pa[i] = sA[r * 32 + k];
+    }
+    #pragma unroll
+    for (int i = 0; i < 8; i++) {
+        int k = 4 * (t & 3) + 16 * (i >> 2) + (i & 3);
+        pb[i] = sBk[k * 8 + (t >> 2)];
+    }
 }
 
 __device__ void load_ldsm(const uint8_t* sA, const uint8_t* sBk,
                           const uint8_t* sBn, unsigned (&a)[4],
                           unsigned (&b)[2]) {
-    (void)sA; (void)sBk; (void)sBn; (void)a; (void)b;
+    int t = threadIdx.x & 31;
+    unsigned pa = __cvta_generic_to_shared(sA + (t & 15) * 32 + (t >> 4) * 16);
+    unsigned pb = __cvta_generic_to_shared(sBn + (t & 7) * 32 + ((t >> 3) & 1) * 16);
+    asm volatile("ldmatrix.sync.aligned.m8n8.x4.shared.b16 {%0,%1,%2,%3}, [%4];"
+        : "=r"(a[0]), "=r"(a[1]), "=r"(a[2]), "=r"(a[3]) : "r"(pa) : "memory");
+    asm volatile("ldmatrix.sync.aligned.m8n8.x2.shared.b16 {%0,%1}, [%2];"
+        : "=r"(b[0]), "=r"(b[1]) : "r"(pb) : "memory");
 }
 
 template <bool USE_LDSM>
 __global__ void mma_kernel(const uint8_t* A, const uint8_t* B, float* D) {
-    __shared__ uint8_t sA[16 * 32], sBk[32 * 8], sBn[8 * 32];
+    __shared__ __align__(16) uint8_t sA[16 * 32], sBk[32 * 8], sBn[8 * 32];
     for (int i = threadIdx.x; i < 16 * 32; i += 32) sA[i] = A[i];
     for (int i = threadIdx.x; i < 32 * 8; i += 32) {
         sBk[i] = B[i];

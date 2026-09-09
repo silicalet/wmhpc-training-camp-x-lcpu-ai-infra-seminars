@@ -80,6 +80,36 @@ __device__ inline bool mbar_try(uint32_t mbar, uint32_t phase) {
     return done;
 }
 
+
+static CUtensorMap tensor_map(void *ptr, int rows, int K, int tile_rows) {
+    CUtensorMap map{};
+    uint64_t dims[2] = {uint64_t(K), uint64_t(rows)};
+    uint64_t strides[1] = {uint64_t(K) * 2};
+    uint32_t box[2] = {64, uint32_t(tile_rows)}, elem[2] = {1, 1};
+    CUresult e = cuTensorMapEncodeTiled(&map, CU_TENSOR_MAP_DATA_TYPE_BFLOAT16,
+        2, ptr, dims, strides, box, elem, CU_TENSOR_MAP_INTERLEAVE_NONE,
+        CU_TENSOR_MAP_SWIZZLE_128B, CU_TENSOR_MAP_L2_PROMOTION_NONE,
+        CU_TENSOR_MAP_FLOAT_OOB_FILL_NONE);
+    if (e != CUDA_SUCCESS) {
+        fprintf(stderr, "cuTensorMapEncodeTiled failed: %d\n", int(e));
+        std::exit(1);
+    }
+    return map;
+}
+
+__device__ inline void load_tma(uint8_t *sa, uint8_t *sb, uint32_t full,
+                                const CUtensorMap *a, const CUtensorMap *b,
+                                int k, int m, int n) {
+    asm volatile("mbarrier.arrive.expect_tx.shared::cta.b64 _, [%0], 24576;"
+        :: "r"(full) : "memory");
+    asm volatile("cp.async.bulk.tensor.2d.shared::cluster.global.mbarrier::complete_tx::bytes "
+        "[%0], [%1, {%2, %3}], [%4];"
+        :: "r"(uint32_t(__cvta_generic_to_shared(sa))), "l"(a), "r"(k), "r"(m), "r"(full) : "memory");
+    asm volatile("cp.async.bulk.tensor.2d.shared::cluster.global.mbarrier::complete_tx::bytes "
+        "[%0], [%1, {%2, %3}], [%4];"
+        :: "r"(uint32_t(__cvta_generic_to_shared(sb))), "l"(b), "r"(k), "r"(n), "r"(full) : "memory");
+}
+
 __global__ void gemm_pipeline(const __nv_bfloat16* gA, const __nv_bfloat16* gB,
                               float* gD, int M, int N, int K,
                               const __grid_constant__ CUtensorMap tmapA,
@@ -88,30 +118,106 @@ __global__ void gemm_pipeline(const __nv_bfloat16* gA, const __nv_bfloat16* gB,
     uint8_t* smem =
         (uint8_t*)(((uintptr_t)smem_raw + 1023) & ~(uintptr_t)1023);
 
-    // TODO:把你 4.2 的 kernel 扩成 NSTAGE 级流水。参考结构:
-    // (1) smem 划成 NSTAGE 段,stage s 的 A/B 起点自己排;mbarrier 每
-    //     stage 两个:full[s](TMA 到达)、empty[s](mma 消费完成)
-    // (2) 预热:先发 min(NSTAGE, iters) 轮 TMA(发第 it 轮 = 对 stage
-    //     it%NSTAGE 做 arrive.expect_tx + 两条 cp.async.bulk.tensor)
-    // (3) 主循环 it:
-    //     - 强制发射:若第 it 轮 TMA 还没发,阻塞等 empty[it%NSTAGE]
-    //       后补发(见文件头 hazard;empty 的 parity 按该 stage 被复用
-    //       的轮次算,第一次复用等的是上一轮使用的完成)
-    //     - 机会式深预取:try_wait 下一个待发 stage 的 empty,成功就
-    //       继续发,失败立刻停,不许阻塞
-    //     - 等 full[it%NSTAGE](parity = (it/NSTAGE)&1)→ tcgen05.fence
-    //       → mma(与 4.2 相同,累加位口径不变)→ commit 到
-    //       empty[it%NSTAGE]
-    // (4) drain:等最后一轮 mma 的 empty 到达,再进 epilogue
-    (void)gA; (void)gB; (void)gD; (void)M; (void)N; (void)K;
-    (void)tmapA; (void)tmapB; (void)smem;
+    __shared__ __align__(8) uint64_t bar;
+    __shared__ uint32_t addr;
+    int t = threadIdx.x, warp = t >> 5;
+    uint32_t mb = __cvta_generic_to_shared(&bar);
+    if (t == 0) {
+        asm volatile("mbarrier.init.shared::cta.b64 [%0], 1;" :: "r"(mb) : "memory");
+        asm volatile("fence.mbarrier_init.release.cluster;" ::: "memory");
+    }
+    if (warp == 0) {
+        uint32_t p = __cvta_generic_to_shared(&addr);
+        asm volatile("tcgen05.alloc.cta_group::1.sync.aligned.shared::cta.b32 [%0], 64;" :: "r"(p) : "memory");
+        asm volatile("tcgen05.relinquish_alloc_permit.cta_group::1.sync.aligned;");
+    }
+    __syncthreads();
+    uint32_t ta = addr;
+    constexpr int S = NSTAGE;
+    static_assert(S > 0);
+    __shared__ __align__(8) uint64_t full[S], empty[S];
+    int tm = blockIdx.x * 128, tn = blockIdx.y * 64, count = K / 64;
+    if (t == 0) {
+        for (int i = 0; i < S; i++) {
+            uint32_t f = __cvta_generic_to_shared(full + i);
+            uint32_t e = __cvta_generic_to_shared(empty + i);
+            asm volatile("mbarrier.init.shared::cta.b64 [%0], 1;" :: "r"(f) : "memory");
+            asm volatile("mbarrier.init.shared::cta.b64 [%0], 1;" :: "r"(e) : "memory");
+        }
+        asm volatile("fence.mbarrier_init.release.cluster;" ::: "memory");
+    }
+    __syncthreads();
+    if (t == 0) {
+        int next = 0;
+        for (; next < S && next < count; next++) {
+            auto *sa = smem + next * 24576;
+            load_tma(sa, sa + 16384, __cvta_generic_to_shared(full + next),
+                &tmapA, &tmapB, next * 64, tm, tn);
+        }
+        for (int it = 0; it < count; it++) {
+            // 当前轮必须已发射；机会式预取失败后在这里阻塞补发。
+            if (next == it) {
+                int q = next % S;
+                mbar_wait(__cvta_generic_to_shared(empty + q), ((next / S) - 1) & 1);
+                auto *sa = smem + q * 24576;
+                load_tma(sa, sa + 16384, __cvta_generic_to_shared(full + q),
+                    &tmapA, &tmapB, next * 64, tm, tn);
+                next++;
+            }
+            while (next < count && next < it + S) {
+                int q = next % S;
+                if (!mbar_try(__cvta_generic_to_shared(empty + q), ((next / S) - 1) & 1)) break;
+                auto *sa = smem + q * 24576;
+                load_tma(sa, sa + 16384, __cvta_generic_to_shared(full + q),
+                    &tmapA, &tmapB, next * 64, tm, tn);
+                next++;
+            }
+            int q = it % S;
+            mbar_wait(__cvta_generic_to_shared(full + q), (it / S) & 1);
+            auto *sa = smem + q * 24576;
+            auto *sb = sa + 16384;
+            mb = __cvta_generic_to_shared(empty + q);
+        asm volatile("tcgen05.fence::after_thread_sync;" ::: "memory");
+        for (int k = 0; k < 64; k += 16) {
+            uint64_t da = make_desc_sm100(__cvta_generic_to_shared(sa) + k * 2, 0, 1024, 2);
+            uint64_t db = make_desc_sm100(__cvta_generic_to_shared(sb) + k * 2, 0, 1024, 2);
+            uint32_t id = (1u << 4) | (1u << 7) | (1u << 10) | (8u << 17) | (8u << 24);
+            asm volatile("{ .reg .pred p; setp.ne.b32 p, %4, 0; "
+                "tcgen05.mma.cta_group::1.kind::f16 [%0], %1, %2, %3, p; }"
+                :: "r"(ta), "l"(da), "l"(db), "r"(id), "r"(int(it != 0 || k != 0)) : "memory");
+        }
+        asm volatile("tcgen05.commit.cta_group::1.mbarrier::arrive::one.shared::cluster.b64 [%0];"
+            :: "r"(mb) : "memory");
+        }
+        mbar_wait(__cvta_generic_to_shared(empty + (count - 1) % S), ((count - 1) / S) & 1);
+        asm volatile("tcgen05.fence::after_thread_sync;" ::: "memory");
+        asm volatile("tcgen05.fence::before_thread_sync;" ::: "memory");
+    }
+    __syncthreads();
+    asm volatile("tcgen05.fence::after_thread_sync;" ::: "memory");
+    for (int c = 0; c < 64; c += 8) {
+        float v[8];
+        uint32_t p = ta + ((warp * 32) << 16) + c;
+        asm volatile("tcgen05.ld.sync.aligned.32x32b.x8.b32 {%0,%1,%2,%3,%4,%5,%6,%7}, [%8];"
+            : "=f"(v[0]), "=f"(v[1]), "=f"(v[2]), "=f"(v[3]),
+              "=f"(v[4]), "=f"(v[5]), "=f"(v[6]), "=f"(v[7]) : "r"(p) : "memory");
+        asm volatile("tcgen05.wait::ld.sync.aligned;" ::: "memory");
+        #pragma unroll
+        for (int i = 0; i < 8; i++) gD[(size_t(tm) + t) * N + tn + c + i] = v[i];
+    }
+    asm volatile("tcgen05.fence::before_thread_sync;" ::: "memory");
+    __syncthreads();
+    if (warp == 0) {
+        asm volatile("tcgen05.dealloc.cta_group::1.sync.aligned.b32 %0, 64;" :: "r"(ta) : "memory");
+    }
+
 }
 
 int main(int argc, char** argv) {
     int M = argc > 3 ? atoi(argv[1]) : 4096;
     int N = argc > 3 ? atoi(argv[2]) : 4096;
     int K = argc > 3 ? atoi(argv[3]) : 4096;
-    if (M % BM || N % BN || K % BK) {
+    if (M <= 0 || N <= 0 || K <= 0 || M % BM || N % BN || K % BK) {
         printf("形状需按 %dx%dx%d 对齐\n", BM, BN, BK);
         return 1;
     }
@@ -131,8 +237,9 @@ int main(int argc, char** argv) {
     CUDA_CHECK(cudaMemcpy(dB, hB.data(), nB * 2, cudaMemcpyHostToDevice));
     CUDA_CHECK(cudaMemset(dD, 0xFF, nD * 4));
 
-    // TODO:tensor map 从你的 4.2 原样复制。
-    CUtensorMap tmapA = {}, tmapB = {};
+    // 与 4.2 相同的 tensor map。
+    CUtensorMap tmapA = tensor_map(dA, M, K, BM);
+    CUtensorMap tmapB = tensor_map(dB, N, K, BN);
 
     dim3 grid(M / BM, N / BN);
     // NSTAGE=3 时 72KB+对齐余量,超 48KB 静态上限,动态 smem 必须。
@@ -140,6 +247,12 @@ int main(int argc, char** argv) {
     CUDA_CHECK(cudaFuncSetAttribute(gemm_pipeline,
                                     cudaFuncAttributeMaxDynamicSharedMemorySize,
                                     (int)smemBytes));
+    int blocks;
+    cudaFuncAttributes attr{};
+    CUDA_CHECK(cudaFuncGetAttributes(&attr, gemm_pipeline));
+    CUDA_CHECK(cudaOccupancyMaxActiveBlocksPerMultiprocessor(&blocks, gemm_pipeline, 128, smemBytes));
+    printf("RESOURCES S=%d dynamic_smem=%zu static_smem=%zu registers=%d blocks/SM=%d\n",
+        NSTAGE, smemBytes, attr.sharedSizeBytes, attr.numRegs, blocks);
     auto launch = [&] {
         gemm_pipeline<<<grid, 128, smemBytes>>>(dA, dB, dD, M, N, K, tmapA,
                                                 tmapB);

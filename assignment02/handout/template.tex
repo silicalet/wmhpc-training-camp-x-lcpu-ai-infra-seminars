@@ -1,10 +1,7 @@
 % pandoc 模板:版式与 assignment01/handout/assignment01.tex 相同,
 % 正文由 handout/src/*.md 生成,不要手工编辑生成出来的 .tex。
-\documentclass[11pt,a4paper,fontset=none]{ctexart}
+\documentclass[11pt,a4paper,fontset=fandol]{ctexart}
 
-\setCJKmainfont[BoldFont={Noto Serif CJK SC Bold}]{Noto Serif CJK SC}
-\setCJKsansfont[BoldFont={Noto Sans CJK SC Bold}]{Noto Sans CJK SC}
-\setCJKmonofont{Noto Sans CJK SC}
 \usepackage{geometry}
 \geometry{margin=2.3cm}
 
@@ -18,6 +15,8 @@
 \definecolor{codebg}{RGB}{248,248,246}
 \usepackage[most]{tcolorbox}
 \usepackage{listings}
+\usepackage{fvextra}
+\IfFontExistsTF{DejaVu Sans Mono}{\setmonofont{DejaVu Sans Mono}[Scale=MatchLowercase]}{}
 \definecolor{strgreen}{RGB}{21,101,42}
 \lstset{
   basicstyle=\ttfamily\small,
@@ -42,6 +41,13 @@
 \providecommand{\passthrough}[1]{#1}
 \setlength{\LTpre}{0.6em}
 \setlength{\LTpost}{0.6em}
+\AtBeginEnvironment{longtable}{\small\setlength{\tabcolsep}{3pt}}
+
+$if(highlighting-macros)$
+$highlighting-macros$
+$endif$
+\DefineVerbatimEnvironment{Highlighting}{Verbatim}{commandchars=\\\{\},breaklines,breakanywhere,breaknonspaceingroup,fontsize=\small}
+\DefineVerbatimEnvironment{verbatim}{Verbatim}{breaklines,breakanywhere,fontsize=\small}
 
 % 参考资料框
 \newtcolorbox{reading}{enhanced, breakable,
@@ -63,6 +69,14 @@
   title={Editor's Note}, fonttitle=\bfseries\sffamily\small,
   coltitle=black, attach title to upper={\quad},
   before upper app={\setlength{\parskip}{0.5em}}}
+
+% 学员作答
+\newtcolorbox{answer}{enhanced, breakable,
+  colback=strgreen!3, colframe=strgreen!55, boxrule=0.5pt, arc=1.5pt,
+  left=7pt, right=7pt, top=5pt, bottom=5pt,
+  title={作答}, fonttitle=\bfseries\sffamily\small,
+  coltitle=black, attach title to upper={\quad},
+  before upper app={\setlength{\parskip}{0.4em}}}
 
 % 题目标题:\prob{编号}{TYPE};选做 \prob[Optional]{编号}{TYPE};
 % 末尾可选参数标注涉及的代码文件

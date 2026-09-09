@@ -1,0 +1,15 @@
+/tmp/assignment02-venv/lib/python3.12/site-packages/torch/_subclasses/functional_tensor.py:368: UserWarning: Failed to initialize NumPy: No module named 'numpy' (Triggered internally at /__w/pytorch/pytorch/torch/csrc/utils/tensor_numpy.cpp:84.)
+  cpu = _conversion_method_template(device=torch.device("cpu"))
+含 outlier:
+  x≈0.5      rel_err=4.611e-02
+  x≈0.1      rel_err=4.634e-02
+  x≈0.01     rel_err=3.085e-01
+  x≈0.005    rel_err=1.000e+00
+  x≈3000.0   rel_err=0.000e+00
+no_outlier: rel_err_0.5=0.000308632181, ratio=149.40993
+scale=6.69642857, zero_threshold=0.00653948103
+max_abs_zeroed=0.00648248196
+ordinary tensor: mean_rel=0.0379850976, zeros=79
+ordinary block128: mean_rel=0.0220540948, zeros=0
+outlier_block tensor: mean_rel=0.0257169176, zeros=0
+outlier_block block128: mean_rel=0.0257169176, zeros=0

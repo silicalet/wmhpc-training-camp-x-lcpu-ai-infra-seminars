@@ -1,0 +1,9 @@
+==PROF== Connected to process 975914 (/home/lcpu/99043118/assignment02-codex-20260909/cuda/bin/m5_lowprec/03c_ceiling_probe)
+M=4096   K=7168   probe    38.33 us    1963 GB/s
+M=16384  K=4096   probe    42.97 us    4002 GB/s
+M=16384  K=8192   probe    58.53 us    5876 GB/s
+==PROF== Disconnected from process 975914
+"ID","Process ID","Process Name","Host Name","Kernel Name","Context","Stream","Block Size","Grid Size","Device","CC","Section Name","Metric Name","Metric Unit","Metric Value"
+"0","975914","03c_ceiling_probe","127.0.0.1","void probe_kernel<128>(const __nv_bfloat16 *, unsigned char *, unsigned char *, int, int)","1","7","(128, 1, 1)","(1184, 1, 1)","0","10.3","Command line profiler metrics","dram__throughput.avg.pct_of_peak_sustained_elapsed","%","38.37"
+"0","975914","03c_ceiling_probe","127.0.0.1","void probe_kernel<128>(const __nv_bfloat16 *, unsigned char *, unsigned char *, int, int)","1","7","(128, 1, 1)","(1184, 1, 1)","0","10.3","Command line profiler metrics","sm__throughput.avg.pct_of_peak_sustained_elapsed","%","21.19"
+"0","975914","03c_ceiling_probe","127.0.0.1","void probe_kernel<128>(const __nv_bfloat16 *, unsigned char *, unsigned char *, int, int)","1","7","(128, 1, 1)","(1184, 1, 1)","0","10.3","Command line profiler metrics","sm__warps_active.avg.pct_of_peak_sustained_active","%","46.63"

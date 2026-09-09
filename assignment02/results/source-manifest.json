@@ -1,0 +1,150 @@
+[
+  {
+    "path": "cuda/common.h",
+    "sha256": "80017b942556fdea270cb4b3790d0f22c05043a675c471ed1a17ef82e9c86619"
+  },
+  {
+    "path": "cuda/m0_env/01_first_mma.cu",
+    "sha256": "d5e1c032f1ddfdafaf950255a8a40a643c4cfe5a4c5ef2d7271f58cfff0e8f9b"
+  },
+  {
+    "path": "cuda/m1_sm80/01_fragment_map.cu",
+    "sha256": "34f23d2526b96b05c9df892fe7c12c19a0435188e4cba3a22d131c1e2032da90"
+  },
+  {
+    "path": "cuda/m1_sm80/02_bug_fragment.cu",
+    "sha256": "3f6ab5df0e18414497d1e69648d31880f37235ef58fbd0b376277543e89fc78c"
+  },
+  {
+    "path": "cuda/m1_sm80/03_mma_fp8.cu",
+    "sha256": "bab654ebd4e5d06aeb7a8f27d597c371ae4982708f7f27ce6da9e830fd3202d1"
+  },
+  {
+    "path": "cuda/m1_sm80/04_ldmatrix.cu",
+    "sha256": "f2260591ac9ec9621b17237df84c1ae7051cbfb9a3d50175206a9d7e41c44525"
+  },
+  {
+    "path": "cuda/m1_sm80/05_ldsm_stride.cu",
+    "sha256": "46e1f7aa29bd389d7499c860867d18b4e63b11efe83feb62dacd6fe925694ccd"
+  },
+  {
+    "path": "cuda/m1_sm80/judge_mma_fp8.sh",
+    "sha256": "098cc9dee6c70e3a2a845a0a1c2cdbb087d64ca8cd1c9fe1e8ed2b01fe251b77"
+  },
+  {
+    "path": "cuda/m2_smem/02_descriptor.cu",
+    "sha256": "fb3166443f5a4a3b9f3aa99a5378678c67a69597737a3a9ded9aee6d612a93f8"
+  },
+  {
+    "path": "cuda/m2_smem/03_swizzle.cu",
+    "sha256": "f3f3be8d644a80b841f2cdc31d4229b6de383210f1b62a0bbaf4df00e8be2665"
+  },
+  {
+    "path": "cuda/m3_tcgen05/02_single_tile.cu",
+    "sha256": "6942a47fb7a5c226b1641c07bc0e0efd54477967c8e9d7cbab5419fc773fae1a"
+  },
+  {
+    "path": "cuda/m3_tcgen05/03_bug_mbarrier.cu",
+    "sha256": "217002fcba3ed313e3cda618669c90d8b518f8b097ec749af6ea34569a49bd25"
+  },
+  {
+    "path": "cuda/m3_tcgen05/04_cta_pair.cu",
+    "sha256": "83a23e31ac2805556932d0dae786eebb0b2c3f93e98166e68359662c83e3fe97"
+  },
+  {
+    "path": "cuda/m3_tcgen05/judge_mbar.sh",
+    "sha256": "c63df73ccbdf17a98d66723edd9f29b7fc0a91e310439c7c471ad3f79c06f2a3"
+  },
+  {
+    "path": "cuda/m3_tcgen05/judge_tile.sh",
+    "sha256": "12cd8a7bc6c68b3aca9cbc099a5823a3b9119703df4329e978f8a397e3f29131"
+  },
+  {
+    "path": "cuda/m4_gemm/01_tiled.cu",
+    "sha256": "4adfe057fcf177116eea6ce100dcf83c5671594d1ae03b4eef927518091a54ae"
+  },
+  {
+    "path": "cuda/m4_gemm/02_tma.cu",
+    "sha256": "0bfc2d803eb00f0bda7b10cdb79f8b7bb93489ed6e1d09ebfafabf5754d9bce0"
+  },
+  {
+    "path": "cuda/m4_gemm/03_pipeline.cu",
+    "sha256": "bd4ce8626ba6540687b8a9dd6898c947581d8c7b98894c585f27a742c00c93ed"
+  },
+  {
+    "path": "cuda/m4_gemm/05_thin_gemm.cu",
+    "sha256": "b44c5de7b8bcc9dd94816e049cb6278a1fa312f46e40e7d8b95654eac03b362b"
+  },
+  {
+    "path": "cuda/m4_gemm/judge_ladder.sh",
+    "sha256": "5130f8923849cf06ab27badd985e9519f610615b5c7bcc78e19b9b7780fee4cf"
+  },
+  {
+    "path": "cuda/m4_gemm/sweep_stages.sh",
+    "sha256": "9833dd4e965e1a479af9352713551d349ae1ad61d8e1590585ecb1fbc2cd1a74"
+  },
+  {
+    "path": "cuda/m5_lowprec/03a_encode_check.cu",
+    "sha256": "3f20a7ae1b20a5cc7999a6f960c6b97ea2f7c74244d2c853af08ddd4e0372ea0"
+  },
+  {
+    "path": "cuda/m5_lowprec/03b_nvfp4_quant.cu",
+    "sha256": "2bfe4e6dd006b004baa48e505c1c7146aecc95f7b3d2e373be930561bceb4c4f"
+  },
+  {
+    "path": "cuda/m5_lowprec/03c_ceiling_probe.cu",
+    "sha256": "e8f0fedb007d0f64516dc1c93dba79b9a99a26c07c208f7c41106aa68858510e"
+  },
+  {
+    "path": "cuda/m5_lowprec/04_fused_rms_nvfp4.cu",
+    "sha256": "7251ec52a559a27f9b10f2bc43afccbdb348a8e939f50a71b75bcfc82804be0a"
+  },
+  {
+    "path": "cuda/m5_lowprec/e2m1_encode.h",
+    "sha256": "bb97345d8844ee3f1d95330e0633283ec1a1fc46b7fed2fbe24b721d4a161281"
+  },
+  {
+    "path": "cuda/m5_lowprec/nvfp4_common.h",
+    "sha256": "87982d83f39ec3786ae8f1adb179b3278c34aec0d3c836427de4d081dec703c4"
+  },
+  {
+    "path": "cuda/m5_lowprec/nvfp4_quant_kernel.h",
+    "sha256": "42ccefb06bd0f4e2d3fe63e4ad4c5fee81b0c9c302c13a2e0bd7766cfbc553c4"
+  },
+  {
+    "path": "cuda/m5_lowprec/test_fp4_gemm.cu",
+    "sha256": "6c8dc04d6f0e3a2f3bad1ed5e182f363796ae7cf8643c0d04386f5fa1dbdae9b"
+  },
+  {
+    "path": "kernels/__init__.py",
+    "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+  },
+  {
+    "path": "kernels/block_scale_sim.py",
+    "sha256": "d35399acc530913ddae224b5532eed85658bc887623362f9be16fd3cf026b9e8"
+  },
+  {
+    "path": "kernels/quant_outlier.py",
+    "sha256": "db7c2edbce68d2c38bda35f8550670069dbe6cfc71a85b60742afa86cca7a369"
+  },
+  {
+    "path": "experiments/bandwidth.cu",
+    "sha256": "5ee3ddb42f8181e91ba26496438074db8b535ddd40540b51d7b618d1c9048af3"
+  },
+  {
+    "path": "experiments/device.cu",
+    "sha256": "823cc04e83d24f37e4081fe243902c0e723dfca0c18dd0a27e04d7d9c5e42848"
+  },
+  {
+    "path": "experiments/naive_matmul.cu",
+    "sha256": "571cf09352cb47ad10623a086e0782b2062d35e81b28e772020bc69b57b9714e"
+  },
+  {
+    "path": "experiments/run_required.sh",
+    "sha256": "19c91b10ccef3056abfa1bde0b6d2e9db683a7c1afc366b73eb6c2391bb14000"
+  },
+  {
+    "path": "experiments/tilelang_lower.py",
+    "sha256": "0896b858ae7ebd2a8411e076b99a9d3eca2fecf111b3e8ada12e335eecb05043"
+  }
+]

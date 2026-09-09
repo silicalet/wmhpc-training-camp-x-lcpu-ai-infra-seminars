@@ -1,0 +1,16 @@
+make: Entering directory '/home/user0/workspace/wmhpc-training-camp-x-lcpu-ai-infra-seminars/assignment02/cuda'
+nvcc -O2 -std=c++17 -I. --expt-relaxed-constexpr -gencode arch=compute_89,code=sm_89 -o bin/m1_sm80/01_fragment_map m1_sm80/01_fragment_map.cu
+./bin/m1_sm80/01_fragment_map
+PASS
+nvcc -O2 -std=c++17 -I. --expt-relaxed-constexpr -gencode arch=compute_89,code=sm_89 -o bin/m2_smem/02_descriptor m2_smem/02_descriptor.cu
+./bin/m2_smem/02_descriptor
+场景 1 PASS
+场景 2 PASS
+场景 3 PASS
+nvcc -O2 -std=c++17 -I. --expt-relaxed-constexpr -gencode arch=compute_89,code=sm_89 -o bin/m2_smem/03_swizzle m2_smem/03_swizzle.cu
+./bin/m2_smem/03_swizzle
+128B PASS
+ 64B PASS
+ 32B PASS
+rm bin/m1_sm80/01_fragment_map bin/m2_smem/03_swizzle bin/m2_smem/02_descriptor
+make: Leaving directory '/home/user0/workspace/wmhpc-training-camp-x-lcpu-ai-infra-seminars/assignment02/cuda'

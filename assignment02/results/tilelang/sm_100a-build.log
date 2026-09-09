@@ -1,0 +1,50 @@
+nvcc -O2 -std=c++17 --expt-relaxed-constexpr -I/home/lcpu/99043118/assignment02-codex-20260909/.venv/lib/python3.12/site-packages/tilelang/src -I/home/lcpu/99043118/assignment02-codex-20260909/.venv/lib/python3.12/site-packages/tilelang/3rdparty/cutlass/include -gencode arch=compute_100a,code=sm_100a -cubin /home/lcpu/99043118/assignment02-codex-20260909/results/tilelang/sm_100a.cu -o /home/lcpu/99043118/assignment02-codex-20260909/results/tilelang/sm_100a.cubin
+/home/lcpu/99043118/assignment02-codex-20260909/.venv/lib/python3.12/site-packages/tilelang/src/tl_templates/cuda/instruction/../common.h(399): warning #1444-D: type "longlong4" was declared deprecated ("use longlong4_16a or longlong4_32a")
+    longlong4 result;
+              ^
+/usr/local/cuda-13.0/bin/../targets/x86_64-linux/include/vector_types.h(550): note #3287-D: because of a "deprecated" attribute
+  typedef __attribute__((device_builtin)) struct longlong4 __attribute__((deprecated("use longlong4_16a or longlong4_32a"))) longlong4;
+                                                                          ^
+
+Remark: The warnings can be suppressed with "-diag-suppress <warning-number>"
+
+/home/lcpu/99043118/assignment02-codex-20260909/.venv/lib/python3.12/site-packages/tilelang/src/tl_templates/cuda/instruction/../common.h(417): warning #1444-D: type "longlong4" was declared deprecated ("use longlong4_16a or longlong4_32a")
+    longlong4 result;
+              ^
+/usr/local/cuda-13.0/bin/../targets/x86_64-linux/include/vector_types.h(550): note #3287-D: because of a "deprecated" attribute
+  typedef __attribute__((device_builtin)) struct longlong4 __attribute__((deprecated("use longlong4_16a or longlong4_32a"))) longlong4;
+                                                                          ^
+
+/home/lcpu/99043118/assignment02-codex-20260909/.venv/lib/python3.12/site-packages/tilelang/src/tl_templates/cuda/instruction/../common.h(435): warning #1444-D: type "ulonglong4" was declared deprecated ("use ulonglong4_16a or ulonglong4_32a")
+    ulonglong4 result;
+               ^
+/usr/local/cuda-13.0/bin/../targets/x86_64-linux/include/vector_types.h(551): note #3287-D: because of a "deprecated" attribute
+  typedef __attribute__((device_builtin)) struct ulonglong4 __attribute__((deprecated("use ulonglong4_16a or ulonglong4_32a"))) ulonglong4;
+                                                                           ^
+
+/home/lcpu/99043118/assignment02-codex-20260909/.venv/lib/python3.12/site-packages/tilelang/src/tl_templates/cuda/instruction/../common.h(810): warning #20012-D: __device__ annotation is ignored on a non-virtual function("float_e4m3_t") that is explicitly defaulted on its first declaration
+    __inline__ __attribute__((always_inline)) __attribute__((device)) __attribute__((host))
+                                                             ^
+
+/home/lcpu/99043118/assignment02-codex-20260909/.venv/lib/python3.12/site-packages/tilelang/src/tl_templates/cuda/instruction/../common.h(810): warning #20012-D: __host__ annotation is ignored on a non-virtual function("float_e4m3_t") that is explicitly defaulted on its first declaration
+    __inline__ __attribute__((always_inline)) __attribute__((device)) __attribute__((host))
+                                                                                     ^
+
+/home/lcpu/99043118/assignment02-codex-20260909/.venv/lib/python3.12/site-packages/tilelang/src/tl_templates/cuda/instruction/../common.h(827): warning #20012-D: __device__ annotation is ignored on a non-virtual function("float_e5m2_t") that is explicitly defaulted on its first declaration
+    __inline__ __attribute__((always_inline)) __attribute__((device)) __attribute__((host))
+                                                             ^
+
+/home/lcpu/99043118/assignment02-codex-20260909/.venv/lib/python3.12/site-packages/tilelang/src/tl_templates/cuda/instruction/../common.h(827): warning #20012-D: __host__ annotation is ignored on a non-virtual function("float_e5m2_t") that is explicitly defaulted on its first declaration
+    __inline__ __attribute__((always_inline)) __attribute__((device)) __attribute__((host))
+                                                                                     ^
+
+/home/lcpu/99043118/assignment02-codex-20260909/.venv/lib/python3.12/site-packages/tilelang/src/tl_templates/cuda/instruction/../common.h(844): warning #20012-D: __device__ annotation is ignored on a non-virtual function("tfloat32_t") that is explicitly defaulted on its first declaration
+    __inline__ __attribute__((always_inline)) __attribute__((device)) __attribute__((host))
+                                                             ^
+
+/home/lcpu/99043118/assignment02-codex-20260909/.venv/lib/python3.12/site-packages/tilelang/src/tl_templates/cuda/instruction/../common.h(844): warning #20012-D: __host__ annotation is ignored on a non-virtual function("tfloat32_t") that is explicitly defaulted on its first declaration
+    __inline__ __attribute__((always_inline)) __attribute__((device)) __attribute__((host))
+                                                                                     ^
+
+
+exit=0

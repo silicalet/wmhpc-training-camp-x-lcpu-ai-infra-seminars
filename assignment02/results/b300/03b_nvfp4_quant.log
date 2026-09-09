@@ -1,0 +1,3 @@
+M=128   K=1024   PASS(bad=0)      4.04 us      83 GB/s
+M=200   K=4096   PASS(bad=0)      4.10 us     512 GB/s
+M=4096  K=7168   PASS(bad=0)     13.87 us    5425 GB/s

@@ -1,0 +1,25 @@
+# from tvm.script import tirx as T
+
+@T.prim_func
+def gemm(a_handle: T.handle, b_handle: T.handle, c_handle: T.handle):
+    a = T.match_buffer(a_handle, (1024, 1024), "float16", strides=(1024, 1))
+    b = T.match_buffer(b_handle, (1024, 1024), "float16", strides=(1024, 1))
+    c = T.match_buffer(c_handle, (1024, 1024), strides=(1024, 1))
+    # with T.sblock("root"):
+    for bx in T.thread_binding(8, thread="blockIdx.x"):
+        for by in T.thread_binding(8, thread="blockIdx.y"):
+            for tx in T.thread_binding(128, thread="threadIdx.x"):
+                for ty in T.thread_binding(1, thread="threadIdx.y"):
+                    for tz in T.thread_binding(1, thread="threadIdx.z"):
+                        with T.sblock("tilelang_root"):
+                            T.reads()
+                            T.writes()
+                            sa = T.sblock_alloc_buffer((128, 64), "float16", scope="shared.dyn")
+                            sb = T.sblock_alloc_buffer((64, 128), "float16", scope="shared.dyn")
+                            acc = T.sblock_alloc_buffer((128, 128), scope="local.fragment")
+                            T.fill(T.region(acc[0, 0], 2, 128, 128), 0)
+                            for k in T.serial(16, annotations={"num_stages": 3}):
+                                T.copy(T.region(a[bx * 128, k * 64], 1, 128, 64), T.region(sa[0, 0], 2, 128, 64))
+                                T.copy(T.region(b[k * 64, by * 128], 1, 64, 128), T.region(sb[0, 0], 2, 64, 128))
+                                T.gemm(T.region(sa[0, 0], 1, 128, 64), T.region(sb[0, 0], 1, 64, 128), T.region(acc[0, 0], 3, 128, 128), T.bool(False), T.bool(False), 128, 128, 64, 0, T.bool(False), 64, 128, 0, 0, 1, 0, 0, 0, 0)
+                            T.copy(T.region(acc[0, 0], 1, 128, 128), T.region(c[bx * 128, by * 128], 2, 128, 128))

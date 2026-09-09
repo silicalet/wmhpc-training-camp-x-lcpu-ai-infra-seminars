@@ -29,12 +29,36 @@ template <int BLOCK>
 __global__ void nvfp4_quant_kernel(const __nv_bfloat16* __restrict__ in,
                                    uint8_t* __restrict__ dataOut,
                                    uint8_t* __restrict__ sfOut, int M, int K) {
-    // TODO: 实现。
+    for (int g = blockIdx.x * BLOCK + threadIdx.x; g < M * (K / 16);
+         g += gridDim.x * BLOCK) {
+        float v[16], amax = 0;
+        const auto *src = in + size_t(g) * 16;
+        uint4 raw[2] = {reinterpret_cast<const uint4 *>(src)[0],
+                       reinterpret_cast<const uint4 *>(src)[1]};
+        const auto *h = reinterpret_cast<const __nv_bfloat16 *>(raw);
+        #pragma unroll
+        for (int i = 0; i < 16; i++) {
+            v[i] = __bfloat162float(h[i]);
+            amax = fmaxf(amax, fabsf(v[i]));
+        }
+        __nv_fp8_e4m3 sf(amax / 6.0f);
+        float inv = float(sf) != 0 ? 1.0f / float(sf) : 0;
+        uint64_t out = 0;
+        #pragma unroll
+        for (int i = 0; i < 8; i++) {
+            __nv_fp4x2_e2m1 q(make_float2(v[2 * i] * inv, v[2 * i + 1] * inv));
+            out |= uint64_t(q.__x) << (8 * i);
+        }
+        reinterpret_cast<uint64_t *>(dataOut)[g] = out;
+        sfOut[sf_swizzled_offset(g / (K / 16), g % (K / 16), nvfp4_num_ktiles(K))] = sf.__x;
+    }
 }
 
 // 判测和 5.4 会按这个签名调用;grid 大小你自己定,写在这里。
 inline void launch_nvfp4_quant(const __nv_bfloat16* in, uint8_t* dataOut,
                                uint8_t* sfOut, int M, int K, int sms) {
-    // TODO: 选择 grid/block 并启动 nvfp4_quant_kernel。
-    (void)in; (void)dataOut; (void)sfOut; (void)M; (void)K; (void)sms;
+    constexpr int B = 128;
+    int grid = (M * (K / 16) + B - 1) / B;
+    grid = grid < sms * 8 ? grid : sms * 8;
+    nvfp4_quant_kernel<B><<<grid, B>>>(in, dataOut, sfOut, M, K);
 }

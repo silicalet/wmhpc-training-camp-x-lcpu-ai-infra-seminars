@@ -1,0 +1,7 @@
+==PROF== Connected to process 975519 (/home/lcpu/99043118/assignment02-codex-20260909/cuda/bin/m4_gemm/01_tiled)
+[4.1 tiled] M=4096 N=4096 K=4096  PASS(bad=0)  3.29 ms  41.8 TFLOPS  (cuBLAS 1766.9, 达成率 2%)
+==PROF== Disconnected from process 975519
+"ID","Process ID","Process Name","Host Name","Kernel Name","Context","Stream","Block Size","Grid Size","Device","CC","Section Name","Metric Name","Metric Unit","Metric Value"
+"0","975519","01_tiled","127.0.0.1","gemm_tiled(const __nv_bfloat16 *, const __nv_bfloat16 *, float *, int, int, int)","1","7","(128, 1, 1)","(32, 64, 1)","0","10.3","Command line profiler metrics","dram__throughput.avg.pct_of_peak_sustained_elapsed","%","0.31"
+"0","975519","01_tiled","127.0.0.1","gemm_tiled(const __nv_bfloat16 *, const __nv_bfloat16 *, float *, int, int, int)","1","7","(128, 1, 1)","(32, 64, 1)","0","10.3","Command line profiler metrics","sm__throughput.avg.pct_of_peak_sustained_elapsed","%","19.07"
+"0","975519","01_tiled","127.0.0.1","gemm_tiled(const __nv_bfloat16 *, const __nv_bfloat16 *, float *, int, int, int)","1","7","(128, 1, 1)","(32, 64, 1)","0","10.3","Command line profiler metrics","sm__warps_active.avg.pct_of_peak_sustained_active","%","43.80"

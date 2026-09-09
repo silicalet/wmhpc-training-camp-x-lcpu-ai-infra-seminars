@@ -1,0 +1,171 @@
+# M      K        2step_us   fused_us  speedup
+TUNE fused M=1 K=4096 B=128 us=4.208
+TUNE two M=1 K=4096 B=128 grid=0 us=7.244
+TUNE two M=1 K=4096 B=128 grid=2 us=7.242
+TUNE two M=1 K=4096 B=128 grid=4 us=7.242
+TUNE two M=1 K=4096 B=128 grid=8 us=7.270
+TUNE fused M=1 K=4096 B=256 us=4.171
+TUNE two M=1 K=4096 B=256 grid=0 us=7.345
+TUNE two M=1 K=4096 B=256 grid=2 us=7.171
+TUNE two M=1 K=4096 B=256 grid=4 us=7.344
+TUNE two M=1 K=4096 B=256 grid=8 us=7.172
+TUNE fused M=1 K=4096 B=512 us=4.206
+TUNE two M=1 K=4096 B=512 grid=0 us=7.271
+TUNE two M=1 K=4096 B=512 grid=2 us=7.274
+TUNE two M=1 K=4096 B=512 grid=4 us=7.244
+TUNE two M=1 K=4096 B=512 grid=8 us=7.244
+CONFIG M=1 K=4096 fused_B=256 rms_B=256 rms_grid=2
+  1      4096         7.18       4.11    1.75x PASS(bad=0, sf_bad=0)
+TUNE fused M=16 K=4096 B=128 us=4.166
+TUNE two M=16 K=4096 B=128 grid=0 us=8.266
+TUNE two M=16 K=4096 B=128 grid=2 us=8.298
+TUNE two M=16 K=4096 B=128 grid=4 us=8.262
+TUNE two M=16 K=4096 B=128 grid=8 us=8.298
+TUNE fused M=16 K=4096 B=256 us=4.171
+TUNE two M=16 K=4096 B=256 grid=0 us=8.267
+TUNE two M=16 K=4096 B=256 grid=2 us=8.299
+TUNE two M=16 K=4096 B=256 grid=4 us=8.269
+TUNE two M=16 K=4096 B=256 grid=8 us=8.299
+TUNE fused M=16 K=4096 B=512 us=4.171
+TUNE two M=16 K=4096 B=512 grid=0 us=8.270
+TUNE two M=16 K=4096 B=512 grid=2 us=8.268
+TUNE two M=16 K=4096 B=512 grid=4 us=8.273
+TUNE two M=16 K=4096 B=512 grid=8 us=8.265
+CONFIG M=16 K=4096 fused_B=128 rms_B=128 rms_grid=4
+  16     4096         8.20       4.11    2.00x PASS(bad=0, sf_bad=0)
+TUNE fused M=256 K=4096 B=128 us=4.206
+TUNE two M=256 K=4096 B=128 grid=0 us=8.295
+TUNE two M=256 K=4096 B=128 grid=2 us=8.263
+TUNE two M=256 K=4096 B=128 grid=4 us=8.297
+TUNE two M=256 K=4096 B=128 grid=8 us=8.266
+TUNE fused M=256 K=4096 B=256 us=4.171
+TUNE two M=256 K=4096 B=256 grid=0 us=8.299
+TUNE two M=256 K=4096 B=256 grid=2 us=8.268
+TUNE two M=256 K=4096 B=256 grid=4 us=8.299
+TUNE two M=256 K=4096 B=256 grid=8 us=8.265
+TUNE fused M=256 K=4096 B=512 us=4.199
+TUNE two M=256 K=4096 B=512 grid=0 us=8.268
+TUNE two M=256 K=4096 B=512 grid=2 us=8.302
+TUNE two M=256 K=4096 B=512 grid=4 us=8.293
+TUNE two M=256 K=4096 B=512 grid=8 us=8.299
+CONFIG M=256 K=4096 fused_B=256 rms_B=128 rms_grid=2
+  256    4096         8.21       4.11    2.00x PASS(bad=0, sf_bad=0)
+TUNE fused M=1024 K=4096 B=128 us=8.196
+TUNE two M=1024 K=4096 B=128 grid=0 us=10.311
+TUNE two M=1024 K=4096 B=128 grid=2 us=12.364
+TUNE two M=1024 K=4096 B=128 grid=4 us=10.314
+TUNE two M=1024 K=4096 B=128 grid=8 us=10.315
+TUNE fused M=1024 K=4096 B=256 us=6.243
+TUNE two M=1024 K=4096 B=256 grid=0 us=10.314
+TUNE two M=1024 K=4096 B=256 grid=2 us=12.364
+TUNE two M=1024 K=4096 B=256 grid=4 us=10.320
+TUNE two M=1024 K=4096 B=256 grid=8 us=10.316
+TUNE fused M=1024 K=4096 B=512 us=8.233
+TUNE two M=1024 K=4096 B=512 grid=0 us=10.346
+TUNE two M=1024 K=4096 B=512 grid=2 us=11.405
+TUNE two M=1024 K=4096 B=512 grid=4 us=10.355
+TUNE two M=1024 K=4096 B=512 grid=8 us=10.316
+CONFIG M=1024 K=4096 fused_B=256 rms_B=128 rms_grid=0
+  1024   4096        10.25       6.16    1.67x PASS(bad=0, sf_bad=0)
+TUNE fused M=4096 K=4096 B=128 us=16.080
+TUNE two M=4096 K=4096 B=128 grid=0 us=20.512
+TUNE two M=4096 K=4096 B=128 grid=2 us=30.726
+TUNE two M=4096 K=4096 B=128 grid=4 us=24.682
+TUNE two M=4096 K=4096 B=128 grid=8 us=22.601
+TUNE fused M=4096 K=4096 B=256 us=14.480
+TUNE two M=4096 K=4096 B=256 grid=0 us=22.602
+TUNE two M=4096 K=4096 B=256 grid=2 us=31.478
+TUNE two M=4096 K=4096 B=256 grid=4 us=24.683
+TUNE two M=4096 K=4096 B=256 grid=8 us=22.605
+TUNE fused M=4096 K=4096 B=512 us=18.508
+TUNE two M=4096 K=4096 B=512 grid=0 us=26.725
+TUNE two M=4096 K=4096 B=512 grid=2 us=29.088
+TUNE two M=4096 K=4096 B=512 grid=4 us=26.700
+TUNE two M=4096 K=4096 B=512 grid=8 us=26.700
+CONFIG M=4096 K=4096 fused_B=256 rms_B=128 rms_grid=0
+  4096   4096        20.53      14.42    1.42x PASS(bad=0, sf_bad=0)
+TUNE fused M=16384 K=4096 B=128 us=64.171
+TUNE two M=16384 K=4096 B=128 grid=0 us=79.911
+TUNE two M=16384 K=4096 B=128 grid=2 us=134.014
+TUNE two M=16384 K=4096 B=128 grid=4 us=99.639
+TUNE two M=16384 K=4096 B=128 grid=8 us=84.721
+TUNE fused M=16384 K=4096 B=256 us=59.434
+TUNE two M=16384 K=4096 B=256 grid=0 us=89.639
+TUNE two M=16384 K=4096 B=256 grid=2 us=150.189
+TUNE two M=16384 K=4096 B=256 grid=4 us=108.244
+TUNE two M=16384 K=4096 B=256 grid=8 us=88.716
+TUNE fused M=16384 K=4096 B=512 us=71.958
+TUNE two M=16384 K=4096 B=512 grid=0 us=103.664
+TUNE two M=16384 K=4096 B=512 grid=2 us=125.787
+TUNE two M=16384 K=4096 B=512 grid=4 us=99.269
+TUNE two M=16384 K=4096 B=512 grid=8 us=98.163
+CONFIG M=16384 K=4096 fused_B=256 rms_B=128 rms_grid=0
+  16384  4096        79.44      59.47    1.34x PASS(bad=6, sf_bad=1)
+TUNE fused M=4096 K=7168 B=128 us=22.634
+TUNE two M=4096 K=7168 B=128 grid=0 us=38.783
+TUNE two M=4096 K=7168 B=128 grid=2 us=71.951
+TUNE two M=4096 K=7168 B=128 grid=4 us=51.475
+TUNE two M=4096 K=7168 B=128 grid=8 us=43.044
+TUNE fused M=4096 K=7168 B=256 us=20.622
+TUNE two M=4096 K=7168 B=256 grid=0 us=41.033
+TUNE two M=4096 K=7168 B=256 grid=2 us=58.990
+TUNE two M=4096 K=7168 B=256 grid=4 us=45.435
+TUNE two M=4096 K=7168 B=256 grid=8 us=39.328
+TUNE fused M=4096 K=7168 B=512 us=22.669
+TUNE two M=4096 K=7168 B=512 grid=0 us=45.194
+TUNE two M=4096 K=7168 B=512 grid=2 us=53.392
+TUNE two M=4096 K=7168 B=512 grid=4 us=43.157
+TUNE two M=4096 K=7168 B=512 grid=8 us=43.084
+CONFIG M=4096 K=7168 fused_B=256 rms_B=128 rms_grid=0
+  4096   7168        38.91      20.59    1.89x PASS(bad=3, sf_bad=0)
+TUNE fused M=16384 K=7168 B=128 us=102.505
+TUNE two M=16384 K=7168 B=128 grid=0 us=134.214
+TUNE two M=16384 K=7168 B=128 grid=2 us=268.907
+TUNE two M=16384 K=7168 B=128 grid=4 us=188.116
+TUNE two M=16384 K=7168 B=128 grid=8 us=147.941
+TUNE fused M=16384 K=7168 B=256 us=89.469
+TUNE two M=16384 K=7168 B=256 grid=0 us=139.477
+TUNE two M=16384 K=7168 B=256 grid=2 us=221.353
+TUNE two M=16384 K=7168 B=256 grid=4 us=164.799
+TUNE two M=16384 K=7168 B=256 grid=8 us=139.134
+TUNE fused M=16384 K=7168 B=512 us=90.220
+TUNE two M=16384 K=7168 B=512 grid=0 us=161.799
+TUNE two M=16384 K=7168 B=512 grid=2 us=197.470
+TUNE two M=16384 K=7168 B=512 grid=4 us=154.833
+TUNE two M=16384 K=7168 B=512 grid=8 us=153.744
+CONFIG M=16384 K=7168 fused_B=256 rms_B=128 rms_grid=0
+  16384  7168       134.25      88.83    1.51x PASS(bad=5, sf_bad=1)
+TUNE fused M=4096 K=8192 B=128 us=24.683
+TUNE two M=4096 K=8192 B=128 grid=0 us=43.462
+TUNE two M=4096 K=8192 B=128 grid=2 us=65.818
+TUNE two M=4096 K=8192 B=128 grid=4 us=51.102
+TUNE two M=4096 K=8192 B=128 grid=8 us=45.089
+TUNE fused M=4096 K=8192 B=256 us=22.603
+TUNE two M=4096 K=8192 B=256 grid=0 us=42.263
+TUNE two M=4096 K=8192 B=256 grid=2 us=55.850
+TUNE two M=4096 K=8192 B=256 grid=4 us=46.700
+TUNE two M=4096 K=8192 B=256 grid=8 us=42.198
+TUNE fused M=4096 K=8192 B=512 us=25.198
+TUNE two M=4096 K=8192 B=512 grid=0 us=50.930
+TUNE two M=4096 K=8192 B=512 grid=2 us=59.296
+TUNE two M=4096 K=8192 B=512 grid=4 us=48.884
+TUNE two M=4096 K=8192 B=512 grid=8 us=47.353
+CONFIG M=4096 K=8192 fused_B=256 rms_B=256 rms_grid=8
+  4096   8192        41.83      22.58    1.85x PASS(bad=6, sf_bad=2)
+TUNE fused M=16384 K=8192 B=128 us=108.099
+TUNE two M=16384 K=8192 B=128 grid=0 us=158.861
+TUNE two M=16384 K=8192 B=128 grid=2 us=236.306
+TUNE two M=16384 K=8192 B=128 grid=4 us=179.376
+TUNE two M=16384 K=8192 B=128 grid=8 us=155.929
+TUNE fused M=16384 K=8192 B=256 us=92.375
+TUNE two M=16384 K=8192 B=256 grid=0 us=149.236
+TUNE two M=16384 K=8192 B=256 grid=2 us=197.193
+TUNE two M=16384 K=8192 B=256 grid=4 us=161.185
+TUNE two M=16384 K=8192 B=256 grid=8 us=154.154
+TUNE fused M=16384 K=8192 B=512 us=96.395
+TUNE two M=16384 K=8192 B=512 grid=0 us=173.162
+TUNE two M=16384 K=8192 B=512 grid=2 us=211.393
+TUNE two M=16384 K=8192 B=512 grid=4 us=170.777
+TUNE two M=16384 K=8192 B=512 grid=8 us=170.017
+CONFIG M=16384 K=8192 fused_B=256 rms_B=256 rms_grid=0
+  16384  8192       149.17      92.29    1.62x PASS(bad=2, sf_bad=1)

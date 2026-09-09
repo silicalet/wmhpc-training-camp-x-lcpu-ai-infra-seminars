@@ -1,0 +1,10 @@
+==PROF== Connected to process 975421 (/home/lcpu/99043118/assignment02-codex-20260909/cuda/bin/m3_tcgen05/04_cta_pair)
+smem/block: cta_group::1 = 24588 B, cta_group::2 = 20492 B
+::1  PASS(bad=0)  39.40 us
+::2  PASS(bad=0)  38.82 us
+==PROF== Disconnected from process 975421
+"ID","Process ID","Process Name","Host Name","Kernel Name","Context","Stream","Block Size","Grid Size","Device","CC","Section Name","Metric Name","Metric Unit","Metric Value"
+"0","975421","04_cta_pair","127.0.0.1","void tile_kernel<1>(const __nv_bfloat16 *, const __nv_bfloat16 *, float *)","1","7","(128, 1, 1)","(2, 1, 1)","0","10.3","Command line profiler metrics","l1tex__data_pipe_lsu_wavefronts_mem_shared_op_ld.sum","","26"
+"0","975421","04_cta_pair","127.0.0.1","void tile_kernel<1>(const __nv_bfloat16 *, const __nv_bfloat16 *, float *)","1","7","(128, 1, 1)","(2, 1, 1)","0","10.3","Command line profiler metrics","l1tex__data_pipe_lsu_wavefronts_mem_shared_op_st.sum","","778"
+"1","975421","04_cta_pair","127.0.0.1","void tile_kernel<2>(const __nv_bfloat16 *, const __nv_bfloat16 *, float *)","1","7","(128, 1, 1)","(2, 1, 1)","0","10.3","Command line profiler metrics","l1tex__data_pipe_lsu_wavefronts_mem_shared_op_ld.sum","","29"
+"1","975421","04_cta_pair","127.0.0.1","void tile_kernel<2>(const __nv_bfloat16 *, const __nv_bfloat16 *, float *)","1","7","(128, 1, 1)","(2, 1, 1)","0","10.3","Command line profiler metrics","l1tex__data_pipe_lsu_wavefronts_mem_shared_op_st.sum","","650"

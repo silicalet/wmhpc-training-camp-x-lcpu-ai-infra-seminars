@@ -22,18 +22,20 @@
 #include <cstdio>
 #include <cstdint>
 
-// TODO (a):实现位域编码。
+// (a):实现位域编码。
 static uint64_t make_desc(uint32_t saddr, uint32_t lbo, uint32_t sbo,
                           uint32_t layout) {
-    (void)saddr; (void)lbo; (void)sbo; (void)layout;
-    return 0;
+    return uint64_t((saddr >> 4) & 0x3FFF)
+        | (uint64_t((lbo >> 4) & 0x3FFF) << 16)
+        | (uint64_t((sbo >> 4) & 0x3FFF) << 32)
+        | (1ULL << 46) | (uint64_t(layout & 7) << 61);
 }
 
-// TODO (b):三个场景的 {LBO 字节, SBO 字节, layout 编码}。
+// (b):三个场景的 {LBO 字节, SBO 字节, layout 编码}。
 static const uint32_t SCEN[3][3] = {
-    {0, 0, 0},  // 场景 1
-    {0, 0, 0},  // 场景 2
-    {0, 0, 0},  // 场景 3
+    {128, 1024, 0},  // 8 行 × 16B 的 core matrix，沿 K 移一个 core。
+    {0, 1024, 2},  // swizzle atom: 8 行 × 128B。
+    {0, 1024, 2},  // major 方向由 MMA instruction descriptor 指定。
 };
 
 // 以下为判测,不需要修改。不匹配时按字段报差异,不打印期望值。

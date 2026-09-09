@@ -1032,6 +1032,7 @@ block 内同步 & 用户 & & & \\
 边界处理 & 用户 & 编译器 & 用户提供 mask & \texttt{T.copy} 可由编译器处理；显式循环由用户处理 \\
 tile / block 尺寸的选择 & 用户 & 用户 & 用户 & 用户 \\
 block 内同步 & 用户 & 编译器 & 编译器 & 编译器按 copy/gemm/pipeline 插入 \\
+Tensor Core 指令选择与供数布局 & 用户（显式 MMA） & 编译器 & 编译器；用户指定精度/形状 & 编译器；本次 sm\_90a 选 WGMMA，sm\_100a 选 MMA.SYNC \\
 \bottomrule
 \end{tabular}
 \end{center}

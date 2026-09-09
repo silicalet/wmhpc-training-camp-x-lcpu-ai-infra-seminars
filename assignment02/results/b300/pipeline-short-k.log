@@ -1,0 +1,8 @@
+RESOURCES S=3 dynamic_smem=74752 static_smem=64 registers=32 blocks/SM=1
+[4.3 pipeline S=3] M=128 N=64 K=64  PASS(bad=0)  0.01 ms  0.1 TFLOPS  (cuBLAS 0.3, 达成率 50%)
+RESOURCES S=3 dynamic_smem=74752 static_smem=64 registers=32 blocks/SM=1
+[4.3 pipeline S=3] M=128 N=64 K=128  PASS(bad=0)  0.01 ms  0.3 TFLOPS  (cuBLAS 0.5, 达成率 47%)
+RESOURCES S=3 dynamic_smem=74752 static_smem=64 registers=32 blocks/SM=1
+[4.3 pipeline S=3] M=128 N=64 K=192  PASS(bad=0)  0.01 ms  0.4 TFLOPS  (cuBLAS 0.8, 达成率 43%)
+RESOURCES S=3 dynamic_smem=74752 static_smem=64 registers=32 blocks/SM=1
+[4.3 pipeline S=3] M=128 N=64 K=256  PASS(bad=0)  0.01 ms  0.4 TFLOPS  (cuBLAS 1.0, 达成率 40%)

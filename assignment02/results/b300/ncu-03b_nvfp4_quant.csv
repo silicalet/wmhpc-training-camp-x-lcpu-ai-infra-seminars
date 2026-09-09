@@ -1,0 +1,9 @@
+==PROF== Connected to process 975765 (/home/lcpu/99043118/assignment02-codex-20260909/cuda/bin/m5_lowprec/03b_nvfp4_quant)
+M=128   K=1024   PASS(bad=0)     49.29 us       7 GB/s
+M=200   K=4096   PASS(bad=0)     43.62 us      48 GB/s
+M=4096  K=7168   PASS(bad=0)     27.61 us    2725 GB/s
+==PROF== Disconnected from process 975765
+"ID","Process ID","Process Name","Host Name","Kernel Name","Context","Stream","Block Size","Grid Size","Device","CC","Section Name","Metric Name","Metric Unit","Metric Value"
+"0","975765","03b_nvfp4_quant","127.0.0.1","void nvfp4_quant_kernel<128>(const __nv_bfloat16 *, unsigned char *, unsigned char *, int, int)","1","7","(128, 1, 1)","(64, 1, 1)","0","10.3","Command line profiler metrics","dram__throughput.avg.pct_of_peak_sustained_elapsed","%","0.64"
+"0","975765","03b_nvfp4_quant","127.0.0.1","void nvfp4_quant_kernel<128>(const __nv_bfloat16 *, unsigned char *, unsigned char *, int, int)","1","7","(128, 1, 1)","(64, 1, 1)","0","10.3","Command line profiler metrics","sm__throughput.avg.pct_of_peak_sustained_elapsed","%","1.18"
+"0","975765","03b_nvfp4_quant","127.0.0.1","void nvfp4_quant_kernel<128>(const __nv_bfloat16 *, unsigned char *, unsigned char *, int, int)","1","7","(128, 1, 1)","(64, 1, 1)","0","10.3","Command line profiler metrics","sm__warps_active.avg.pct_of_peak_sustained_active","%","6.12"

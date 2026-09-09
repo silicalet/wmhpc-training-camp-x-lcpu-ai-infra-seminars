@@ -12,3 +12,40 @@
 ## 给学员的建议
 
 尽量先自己试，卡住了问思路，做完了让 AI 帮你 review。AI 可以帮你理解，但不能替你实现。
+
+## 作答怎么写进 handout
+
+作业 2 的报告写在 `assignment02/handout/src/assignment02.md`，紧挨对应
+`### N.M {.prob ...}` 题面。不要改 `handout/assignment02.tex` /
+`assignment02.pdf`：那是 pandoc 生成物。
+
+用 fenced div，和 `::: reading` / `::: lookback` 同一套过滤器：
+
+```
+::: answer
+硬件：型号，compute capability，nvcc 版本。
+
+命令、关键输出、对拍结果。解释写机制，不写空话。
+:::
+```
+
+作业 1 的作答在 `assignment01/handout/assignment01.tex` 的
+`\begin{answer}` 里；作业 2 不要往生成 tex 里塞同样的环境。
+
+填写时按这个清单：
+
+- 先跑题面给的命令，再写。数字、报错、PASS/FAIL 必须来自这次运行。
+- 每条作答先写硬件。本机是 RTX 4060 Laptop / sm_89；默认 `ARCH=100f`
+  编出来的是 B300 镜像。
+- `assignment02/cuda` 用显式 `-gencode arch=compute_$(ARCH),code=sm_$(ARCH)`，
+  只嵌一种 SASS，没有低架构 PTX 给 driver JIT。对不上就
+  `cudaErrorNoKernelImageForDevice`，`cudaMalloc` 仍能过。
+- ARCH：本机 `89`，5090 `120a`，B300 默认 `100f`。M0/M1 的 `mma.sync`
+  在 Ada 上能跑；M3–M5 的 tcgen05 / TMA 必须上 B300
+  （`amber run run_assignment02.ab cuda ...` 或 `b300-usage.md`）。
+- 改 `-D` / `ARCH` / `STAGES` 后 `make -B`，否则目标看起来是新鲜的。
+- 表里的空、DEBUG 现象、EXPERIMENT 数字都进 `::: answer`。FROM-SCRATCH
+  的实现仍在 `.cu` / `.py` 里，作答只记判测命令和 PASS 记录。
+- 本机 `pandoc` 3.7 不认 `build.sh` 的 `--syntax-highlighting`；改用
+  `--highlight-style=pygments` 能出 `.tex`。没有 `xelatex` 就停在 tex，
+  不要手改生成文件去“修 PDF”。

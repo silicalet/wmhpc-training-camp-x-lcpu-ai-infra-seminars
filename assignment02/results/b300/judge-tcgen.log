@@ -1,0 +1,13 @@
+PASS seed=1
+PASS seed=7
+PASS seed=42
+PASS seed=1234
+PASS seed=99999
+JUDGE: PASS
+rounds=1 PASS seed=42
+rounds=1 PASS seed=7
+rounds=2 PASS seed=42
+rounds=2 PASS seed=7
+rounds=4 PASS seed=42
+rounds=4 PASS seed=7
+JUDGE: PASS

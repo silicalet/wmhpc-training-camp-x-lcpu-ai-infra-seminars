@@ -1,0 +1,10 @@
+M=1 K=4096 probe_us=3.123 quant_us=3.116 fused_us=4.127 probe_GBs=3.4 quant_GBs=3.4 fused_GBs=2.5 quant/ceiling=1.0022 fused/ceiling=0.7567
+M=16 K=4096 probe_us=3.075 quant_us=3.758 fused_us=4.129 probe_GBs=54.6 quant_GBs=44.7 fused_GBs=40.7 quant/ceiling=0.8182 fused/ceiling=0.7447
+M=256 K=4096 probe_us=4.107 quant_us=4.127 fused_us=4.129 probe_GBs=654.3 quant_GBs=651.1 fused_GBs=650.8 quant/ceiling=0.9951 fused/ceiling=0.9947
+M=1024 K=4096 probe_us=4.129 quant_us=4.139 fused_us=6.167 probe_GBs=2603.3 quant_GBs=2596.8 fused_GBs=1742.9 quant/ceiling=0.9975 fused/ceiling=0.6695
+M=4096 K=4096 probe_us=8.204 quant_us=8.511 fused_us=14.369 probe_GBs=5240.6 quant_GBs=5051.1 fused_GBs=2992.0 quant/ceiling=0.9638 fused/ceiling=0.5709
+M=16384 K=4096 probe_us=31.388 quant_us=35.135 fused_us=59.414 probe_GBs=5478.6 quant_GBs=4894.5 fused_GBs=2894.4 quant/ceiling=0.8934 fused/ceiling=0.5283
+M=4096 K=7168 probe_us=10.273 quant_us=13.458 fused_us=20.512 probe_GBs=7323.6 quant_GBs=5590.5 fused_GBs=3667.8 quant/ceiling=0.7634 fused/ceiling=0.5008
+M=16384 K=7168 probe_us=51.795 quant_us=58.964 fused_us=88.988 probe_GBs=5810.3 quant_GBs=5103.9 fused_GBs=3381.8 quant/ceiling=0.8784 fused/ceiling=0.5820
+M=4096 K=8192 probe_us=12.321 quant_us=14.420 fused_us=22.570 probe_GBs=6978.6 quant_GBs=5962.7 fused_GBs=3809.6 quant/ceiling=0.8544 fused/ceiling=0.5459
+M=16384 K=8192 probe_us=58.666 quant_us=66.274 fused_us=92.295 probe_GBs=5862.5 quant_GBs=5189.6 fused_GBs=3726.4 quant/ceiling=0.8852 fused/ceiling=0.6356

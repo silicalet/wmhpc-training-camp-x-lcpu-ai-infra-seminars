@@ -1,0 +1,18 @@
+== 形状 4096 4096 4096 ==
+RESOURCES S=2 dynamic_smem=50176 static_smem=48 registers=32 blocks/SM=1
+[4.3 pipeline S=2] M=4096 N=4096 K=4096  PASS(bad=0)  0.24 ms  573.3 TFLOPS  (cuBLAS 1764.8, 达成率 32%)
+RESOURCES S=3 dynamic_smem=74752 static_smem=64 registers=32 blocks/SM=1
+[4.3 pipeline S=3] M=4096 N=4096 K=4096  PASS(bad=0)  0.24 ms  574.5 TFLOPS  (cuBLAS 1767.0, 达成率 33%)
+RESOURCES S=4 dynamic_smem=99328 static_smem=80 registers=32 blocks/SM=1
+[4.3 pipeline S=4] M=4096 N=4096 K=4096  PASS(bad=0)  0.29 ms  468.5 TFLOPS  (cuBLAS 1763.8, 达成率 27%)
+RESOURCES S=6 dynamic_smem=148480 static_smem=112 registers=32 blocks/SM=1
+[4.3 pipeline S=6] M=4096 N=4096 K=4096  PASS(bad=0)  0.49 ms  281.9 TFLOPS  (cuBLAS 1766.9, 达成率 16%)
+== 形状 256 4096 16384 ==
+RESOURCES S=2 dynamic_smem=50176 static_smem=48 registers=32 blocks/SM=1
+[4.3 pipeline S=2] M=256 N=4096 K=16384  PASS(bad=0)  0.16 ms  212.2 TFLOPS  (cuBLAS 925.1, 达成率 23%)
+RESOURCES S=3 dynamic_smem=74752 static_smem=64 registers=32 blocks/SM=1
+[4.3 pipeline S=3] M=256 N=4096 K=16384  PASS(bad=0)  0.13 ms  271.1 TFLOPS  (cuBLAS 925.9, 达成率 29%)
+RESOURCES S=4 dynamic_smem=99328 static_smem=80 registers=32 blocks/SM=1
+[4.3 pipeline S=4] M=256 N=4096 K=16384  PASS(bad=0)  0.13 ms  271.9 TFLOPS  (cuBLAS 925.1, 达成率 29%)
+RESOURCES S=6 dynamic_smem=148480 static_smem=112 registers=32 blocks/SM=1
+[4.3 pipeline S=6] M=256 N=4096 K=16384  PASS(bad=0)  0.12 ms  275.1 TFLOPS  (cuBLAS 927.1, 达成率 30%)

@@ -4,7 +4,7 @@
 outlier。按 per-tensor 方式量化到 E4M3(scale = amax / 448,cast 用
 torch.float8_e4m3fn),反量化后测逐点相对误差,填题面的表并回答三问。
 
-需要动手的是下面两个 TODO;跑法:
+量化与误差实验;跑法:
     uv run python kernels/quant_outlier.py
 输出直接用于报告,没有自动判测。
 """
@@ -23,18 +23,22 @@ def build_tensor(n: int = 10000, outlier: float = 3000.0) -> torch.Tensor:
 def quant_dequant_per_tensor(x: torch.Tensor) -> torch.Tensor:
     """per-tensor E4M3 量化再反量化。
 
-    TODO: 实现。步骤:算 scale = amax / 448;除 scale 后 cast 到
+    步骤:算 scale = amax / 448;除 scale 后 cast 到
     torch.float8_e4m3fn;cast 回 float 再乘 scale。
     """
-    raise NotImplementedError
+    scale = x.abs().max() / E4M3_MAX
+    if scale == 0:
+        return x.clone()
+    return (x / scale).to(torch.float8_e4m3fn).float() * scale
 
 
 def rel_err_at(x: torch.Tensor, y: torch.Tensor, value: float) -> float:
     """取 x 中最接近 value 的元素,返回该点的相对误差。
 
-    TODO: 实现(表格的每一格都从这里来)。
+    表格的每一格都从这里计算。
     """
-    raise NotImplementedError
+    i = (x - value).abs().argmin()
+    return ((y[i] - x[i]).abs() / x[i].abs().clamp_min(1e-30)).item()
 
 
 def main() -> None:
@@ -43,6 +47,19 @@ def main() -> None:
     print("含 outlier:")
     for v in (0.5, 0.1, 0.01, 0.005, 3000.0):
         print(f"  x≈{v:<8} rel_err={rel_err_at(x, y, v):.3e}")
+    z = quant_dequant_per_tensor(x[:-1])
+    e = rel_err_at(x[:-1], z, 0.5)
+    print(f"no_outlier: rel_err_0.5={e:.9g}, ratio={rel_err_at(x, y, 0.5) / e:.9g}")
+    scale = x.abs().max().item() / E4M3_MAX
+    print(f"scale={scale:.9g}, zero_threshold={scale / 1024:.9g}")
+    print(f"max_abs_zeroed={x[y == 0].abs().max().item():.9g}")
+    q = torch.cat([quant_dequant_per_tensor(b) for b in x.split(128)])
+    start = (len(x) - 1) // 128 * 128
+    for name, sl in [("ordinary", slice(0, start)), ("outlier_block", slice(start, -1))]:
+        a = x[sl]
+        for mode, out in [("tensor", y), ("block128", q)]:
+            err = (out[sl] - a).abs() / a.abs().clamp_min(1e-30)
+            print(f"{name} {mode}: mean_rel={err.mean().item():.9g}, zeros={(out[sl] == 0).sum().item()}")
     # (a) 去掉 outlier 重新量化,对比 0.5 处的误差
     # (b) 找出被量化成 0 的阈值,写出它与 scale 的关系式
     # (c) 换 1x128 的 per-block scale,对比含/不含 outlier 的 block

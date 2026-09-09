@@ -1,0 +1,1 @@
+nvcc -O2 -std=c++17 -I. --expt-relaxed-constexpr -gencode arch=compute_89,code=sm_89 -o bin/m0_env/01_first_mma m0_env/01_first_mma.cu

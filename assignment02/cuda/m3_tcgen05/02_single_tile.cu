@@ -55,15 +55,67 @@ __device__ inline void mbar_wait(uint32_t mbar, uint32_t phase) {
 
 __global__ void tcgen05_tile(const __nv_bfloat16* gA, const __nv_bfloat16* gB,
                              float* gD) {
-    // TODO: 按七步实现。
-    // (1) mbarrier 初始化 + TMEM 分配(alloc 结果写到 shared,广播)
-    // (2) 全体线程把 A/B 按 swizzled 布局写进 smem
-    // (3) fence.proxy.async + __syncthreads
-    // (4) 单线程发射 4 条 k16 的 tcgen05.mma(第一条不累加),commit
-    // (5) mbarrier 等待
-    // (6) epilogue:每 warp tcgen05.ld 自己的 32 条 lane,写回 global
-    // (7) __syncthreads 后 dealloc
-    (void)gA; (void)gB; (void)gD;
+    __shared__ __align__(1024) uint8_t sa[128 * 64 * 2];
+    __shared__ __align__(1024) uint8_t sb[64 * 64 * 2];
+    int tm = 0, tn = 0, it = 0;
+    __shared__ __align__(8) uint64_t bar;
+    __shared__ uint32_t addr;
+    int t = threadIdx.x, warp = t >> 5;
+    uint32_t mb = __cvta_generic_to_shared(&bar);
+    if (t == 0) {
+        asm volatile("mbarrier.init.shared::cta.b64 [%0], 1;" :: "r"(mb) : "memory");
+        asm volatile("fence.mbarrier_init.release.cluster;" ::: "memory");
+    }
+    if (warp == 0) {
+        uint32_t p = __cvta_generic_to_shared(&addr);
+        asm volatile("tcgen05.alloc.cta_group::1.sync.aligned.shared::cta.b32 [%0], 64;" :: "r"(p) : "memory");
+        asm volatile("tcgen05.relinquish_alloc_permit.cta_group::1.sync.aligned;");
+    }
+    __syncthreads();
+    uint32_t ta = addr;
+        for (int i = t; i < 128 * 64; i += 128) {
+            int r = i / 64, k = i % 64;
+            *reinterpret_cast<__nv_bfloat16 *>(sa + swz128(r, k * 2)) = gA[(size_t(tm) + r) * K + it * 64 + k];
+        }
+        for (int i = t; i < 64 * 64; i += 128) {
+            int r = i / 64, k = i % 64;
+            *reinterpret_cast<__nv_bfloat16 *>(sb + swz128(r, k * 2)) = gB[(size_t(tn) + r) * K + it * 64 + k];
+        }
+#ifndef OMIT_PROXY_FENCE
+        asm volatile("fence.proxy.async.shared::cta;" ::: "memory");
+#endif
+        __syncthreads();
+    if (t == 0) {
+        asm volatile("tcgen05.fence::after_thread_sync;" ::: "memory");
+        for (int k = 0; k < 64; k += 16) {
+            uint64_t da = make_desc_sm100(__cvta_generic_to_shared(sa) + k * 2, 0, 1024, 2);
+            uint64_t db = make_desc_sm100(__cvta_generic_to_shared(sb) + k * 2, 0, 1024, 2);
+            uint32_t id = (1u << 4) | (1u << 7) | (1u << 10) | (8u << 17) | (8u << 24);
+            asm volatile("{ .reg .pred p; setp.ne.b32 p, %4, 0; "
+                "tcgen05.mma.cta_group::1.kind::f16 [%0], %1, %2, %3, p; }"
+                :: "r"(ta), "l"(da), "l"(db), "r"(id), "r"(int(it != 0 || k != 0)) : "memory");
+        }
+        asm volatile("tcgen05.commit.cta_group::1.mbarrier::arrive::one.shared::cluster.b64 [%0];"
+            :: "r"(mb) : "memory");
+    }
+    mbar_wait(mb, 0);
+    asm volatile("tcgen05.fence::after_thread_sync;" ::: "memory");
+    for (int c = 0; c < 64; c += 8) {
+        float v[8];
+        uint32_t p = ta + ((warp * 32) << 16) + c;
+        asm volatile("tcgen05.ld.sync.aligned.32x32b.x8.b32 {%0,%1,%2,%3,%4,%5,%6,%7}, [%8];"
+            : "=f"(v[0]), "=f"(v[1]), "=f"(v[2]), "=f"(v[3]),
+              "=f"(v[4]), "=f"(v[5]), "=f"(v[6]), "=f"(v[7]) : "r"(p) : "memory");
+        asm volatile("tcgen05.wait::ld.sync.aligned;" ::: "memory");
+        #pragma unroll
+        for (int i = 0; i < 8; i++) gD[(size_t(tm) + t) * N + tn + c + i] = v[i];
+    }
+    asm volatile("tcgen05.fence::before_thread_sync;" ::: "memory");
+    __syncthreads();
+    if (warp == 0) {
+        asm volatile("tcgen05.dealloc.cta_group::1.sync.aligned.b32 %0, 64;" :: "r"(ta) : "memory");
+    }
+
 }
 
 int main(int argc, char** argv) {

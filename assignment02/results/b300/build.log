@@ -1,0 +1,17 @@
+nvcc -O2 -std=c++17 -I. --expt-relaxed-constexpr -gencode arch=compute_100f,code=sm_100f -o bin/m0_env/01_first_mma m0_env/01_first_mma.cu
+nvcc -O2 -std=c++17 -I. --expt-relaxed-constexpr -gencode arch=compute_100f,code=sm_100f -o bin/m1_sm80/02_bug_fragment m1_sm80/02_bug_fragment.cu
+nvcc -O2 -std=c++17 -I. --expt-relaxed-constexpr -gencode arch=compute_100f,code=sm_100f -o bin/m1_sm80/03_mma_fp8 m1_sm80/03_mma_fp8.cu
+nvcc -O2 -std=c++17 -I. --expt-relaxed-constexpr -gencode arch=compute_100f,code=sm_100f -o bin/m1_sm80/04_ldmatrix m1_sm80/04_ldmatrix.cu
+nvcc -O2 -std=c++17 -I. --expt-relaxed-constexpr -gencode arch=compute_100f,code=sm_100f -o bin/m1_sm80/05_ldsm_stride m1_sm80/05_ldsm_stride.cu
+nvcc -O2 -std=c++17 -I. --expt-relaxed-constexpr -gencode arch=compute_100f,code=sm_100f -o bin/m3_tcgen05/02_single_tile m3_tcgen05/02_single_tile.cu
+nvcc -O2 -std=c++17 -I. --expt-relaxed-constexpr -gencode arch=compute_100f,code=sm_100f -o bin/m3_tcgen05/03_bug_mbarrier m3_tcgen05/03_bug_mbarrier.cu
+nvcc -O2 -std=c++17 -I. --expt-relaxed-constexpr -gencode arch=compute_100f,code=sm_100f -o bin/m3_tcgen05/04_cta_pair m3_tcgen05/04_cta_pair.cu
+nvcc -O2 -std=c++17 -I. --expt-relaxed-constexpr -gencode arch=compute_100f,code=sm_100f -lcublas -lcuda -o bin/m4_gemm/01_tiled m4_gemm/01_tiled.cu
+nvcc -O2 -std=c++17 -I. --expt-relaxed-constexpr -gencode arch=compute_100f,code=sm_100f -lcublas -lcuda -o bin/m4_gemm/02_tma m4_gemm/02_tma.cu
+nvcc -O2 -std=c++17 -I. --expt-relaxed-constexpr -gencode arch=compute_100f,code=sm_100f -lcublas -lcuda -o bin/m4_gemm/03_pipeline m4_gemm/03_pipeline.cu
+nvcc -O2 -std=c++17 -I. --expt-relaxed-constexpr -gencode arch=compute_100f,code=sm_100f -lcublas -lcuda -o bin/m4_gemm/05_thin_gemm m4_gemm/05_thin_gemm.cu
+nvcc -O2 -std=c++17 -I. --expt-relaxed-constexpr -gencode arch=compute_100f,code=sm_100f -o bin/m5_lowprec/03a_encode_check m5_lowprec/03a_encode_check.cu
+nvcc -O2 -std=c++17 -I. --expt-relaxed-constexpr -gencode arch=compute_100f,code=sm_100f -o bin/m5_lowprec/03b_nvfp4_quant m5_lowprec/03b_nvfp4_quant.cu
+nvcc -O2 -std=c++17 -I. --expt-relaxed-constexpr -gencode arch=compute_100f,code=sm_100f -lcublasLt -o bin/m5_lowprec/test_fp4_gemm m5_lowprec/test_fp4_gemm.cu
+nvcc -O2 -std=c++17 -I. --expt-relaxed-constexpr -gencode arch=compute_100f,code=sm_100f -o bin/m5_lowprec/03c_ceiling_probe m5_lowprec/03c_ceiling_probe.cu
+nvcc -O2 -std=c++17 -I. --expt-relaxed-constexpr -gencode arch=compute_100f,code=sm_100f -o bin/m5_lowprec/04_fused_rms_nvfp4 m5_lowprec/04_fused_rms_nvfp4.cu

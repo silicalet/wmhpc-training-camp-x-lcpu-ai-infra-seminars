@@ -1,0 +1,8 @@
+==PROF== Connected to process 987963 (/home/lcpu/99043118/assignment02-codex-20260909/cuda/bin/bandwidth)
+M=4096 K=7168 probe_us=49.731 quant_us=52.726 fused_us=27.075 probe_GBs=1512.8 quant_GBs=1426.9 fused_GBs=2778.8 quant/ceiling=0.9432 fused/ceiling=1.8368
+==PROF== Disconnected from process 987963
+"ID","Process ID","Process Name","Host Name","Kernel Name","Context","Stream","Block Size","Grid Size","Device","CC","Section Name","Metric Name","Metric Unit","Metric Value"
+"0","987963","bandwidth","127.0.0.1","void rms_quant<256>(const __nv_bfloat16 *, const __nv_bfloat16 *, unsigned char *, unsigned char *, int, int, float)","1","7","(256, 1, 1)","(4096, 1, 1)","0","10.3","Command line profiler metrics","dram__throughput.avg.pct_of_peak_sustained_elapsed","%","18.93"
+"0","987963","bandwidth","127.0.0.1","void rms_quant<256>(const __nv_bfloat16 *, const __nv_bfloat16 *, unsigned char *, unsigned char *, int, int, float)","1","7","(256, 1, 1)","(4096, 1, 1)","0","10.3","Command line profiler metrics","launch__registers_per_thread","register/thread","52"
+"0","987963","bandwidth","127.0.0.1","void rms_quant<256>(const __nv_bfloat16 *, const __nv_bfloat16 *, unsigned char *, unsigned char *, int, int, float)","1","7","(256, 1, 1)","(4096, 1, 1)","0","10.3","Command line profiler metrics","sm__throughput.avg.pct_of_peak_sustained_elapsed","%","52.17"
+"0","987963","bandwidth","127.0.0.1","void rms_quant<256>(const __nv_bfloat16 *, const __nv_bfloat16 *, unsigned char *, unsigned char *, int, int, float)","1","7","(256, 1, 1)","(4096, 1, 1)","0","10.3","Command line profiler metrics","sm__warps_active.avg.pct_of_peak_sustained_active","%","43.31"

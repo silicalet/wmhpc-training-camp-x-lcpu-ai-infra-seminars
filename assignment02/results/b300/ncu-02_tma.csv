@@ -1,0 +1,7 @@
+==PROF== Connected to process 975655 (/home/lcpu/99043118/assignment02-codex-20260909/cuda/bin/m4_gemm/02_tma)
+[4.2 tma] M=4096 N=4096 K=4096  PASS(bad=0)  0.24 ms  568.2 TFLOPS  (cuBLAS 1593.2, 达成率 36%)
+==PROF== Disconnected from process 975655
+"ID","Process ID","Process Name","Host Name","Kernel Name","Context","Stream","Block Size","Grid Size","Device","CC","Section Name","Metric Name","Metric Unit","Metric Value"
+"0","975655","02_tma","127.0.0.1","gemm_tma(const __nv_bfloat16 *, const __nv_bfloat16 *, float *, int, int, int, CUtensorMap_st, CUtensorMap_st)","1","7","(128, 1, 1)","(32, 64, 1)","0","10.3","Command line profiler metrics","dram__throughput.avg.pct_of_peak_sustained_elapsed","%","4.61"
+"0","975655","02_tma","127.0.0.1","gemm_tma(const __nv_bfloat16 *, const __nv_bfloat16 *, float *, int, int, int, CUtensorMap_st, CUtensorMap_st)","1","7","(128, 1, 1)","(32, 64, 1)","0","10.3","Command line profiler metrics","sm__throughput.avg.pct_of_peak_sustained_elapsed","%","48.13"
+"0","975655","02_tma","127.0.0.1","gemm_tma(const __nv_bfloat16 *, const __nv_bfloat16 *, float *, int, int, int, CUtensorMap_st, CUtensorMap_st)","1","7","(128, 1, 1)","(32, 64, 1)","0","10.3","Command line profiler metrics","sm__warps_active.avg.pct_of_peak_sustained_active","%","40.32"

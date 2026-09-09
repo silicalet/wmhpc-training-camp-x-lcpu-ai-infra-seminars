@@ -1,0 +1,28 @@
+Architecture:                            x86_64
+CPU op-mode(s):                          32-bit, 64-bit
+Address sizes:                           48 bits physical, 48 bits virtual
+Byte Order:                              Little Endian
+CPU(s):                                  24
+On-line CPU(s) list:                     0-23
+Vendor ID:                               AuthenticAMD
+Model name:                              AMD Ryzen AI 9 HX 370 w/ Radeon 890M
+CPU family:                              26
+Model:                                   36
+Thread(s) per core:                      2
+Core(s) per socket:                      12
+Socket(s):                               1
+Stepping:                                0
+Microcode version:                       0xb20401b
+Frequency boost:                         enabled
+CPU(s) scaling MHz:                      60%
+CPU max MHz:                             5157.8950
+nvcc: NVIDIA (R) Cuda compiler driver
+Copyright (c) 2005-2025 NVIDIA Corporation
+Built on Tue_May_27_02:21:03_PDT_2025
+Cuda compilation tools, release 12.9, V12.9.86
+Build cuda_12.9.r12.9/compiler.36037853_0
+NVIDIA-SMI has failed because it couldn't communicate with the NVIDIA driver. Make sure that the latest NVIDIA driver is installed and running.
+
+/tmp/assignment02-venv/lib/python3.12/site-packages/torch/_subclasses/functional_tensor.py:368: UserWarning: Failed to initialize NumPy: No module named 'numpy' (Triggered internally at /__w/pytorch/pytorch/torch/csrc/utils/tensor_numpy.cpp:84.)
+  cpu = _conversion_method_template(device=torch.device("cpu"))
+2.14.0+cpu
